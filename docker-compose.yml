@@ -1,0 +1,6 @@
+services:
+  capitol_theatre:
+    image: ${DOCKER_REGISTRY-}capitoltheatre
+    build:
+      context: .
+      dockerfile: Capitol_Theatre/Dockerfile

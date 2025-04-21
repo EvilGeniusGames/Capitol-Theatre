@@ -1,0 +1,38 @@
+﻿@model IEnumerable<Capitol_Theatre.Data.Movie>
+
+@{
+    ViewData["Title"] = "Next Week";
+
+    var today = DateTime.Today;
+    var start = today.AddDays(7 - ((int)today.DayOfWeek + 2) % 7); // Next Friday
+    var end = start.AddDays(6);
+}
+
+<div class="container py-4">
+    <h2 class="mb-1">Next Week</h2>
+    <h5 class="text-muted mb-4">Fri @start.ToString("MMMM d") to Thurs @end.ToString("MMMM d")</h5>
+
+    <div class="d-flex flex-wrap gap-4 justify-content-start">
+        @foreach (var movie in Model)
+        {
+            <div class="card shadow-sm" style="width: 24rem;">
+                @if (!string.IsNullOrWhiteSpace(movie.TrailerUrl))
+                {
+                    <a href="@movie.TrailerUrl" target="_blank">
+                        <img src="@movie.PosterPath" class="card-img-top img-fluid" alt="@movie.Title Poster">
+                    </a>
+                }
+                else
+                {
+                    <img src="@movie.PosterPath" class="card-img-top img-fluid" alt="@movie.Title Poster">
+                }
+                <div class="card-body">
+                    <h5 class="card-title">@movie.Title</h5>
+                    <p class="card-text">
+                        <strong>Rating:</strong> @movie.Rating?.Code
+                    </p>
+                </div>
+            </div>
+        }
+    </div>
+</div>

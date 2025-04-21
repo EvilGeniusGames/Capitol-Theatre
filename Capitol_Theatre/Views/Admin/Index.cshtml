@@ -1,0 +1,42 @@
+﻿@model IEnumerable<Capitol_Theatre.Data.PageContent>
+
+<h2 class="my-4">🎛️ Admin Dashboard</h2>
+
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+
+    <!-- Movies Editor -->
+    <div class="col">
+        <div class="card h-100 border-dark">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-film"></i> Edit Movies</h5>
+                <p class="card-text">Manage currently showing, upcoming, and archived films.</p>
+                <a asp-controller="Admin" asp-action="ManageMovies" class="btn btn-primary">Open</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notice Editor -->
+    <div class="col">
+        <div class="card h-100 border-dark">
+            <div class="card-body">
+                <h5 class="card-title">📝 Notice System</h5>
+                <p class="card-text">Manage public notices displayed.</p>
+                <a href="/Admin/Notices" class="btn btn-primary">Edit Notices</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Editable Pages -->
+    @foreach (var content in Model)
+    {
+        <div class="col">
+            <div class="card h-100 border-dark">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-pencil-square"></i> Edit @content.PageKey</h5>
+                    <p class="card-text">Update the content of this page.</p>
+                    <a asp-controller="Admin" asp-action="Edit" asp-route-id="@content.Id" class="btn btn-primary">Edit</a>
+                </div>
+            </div>
+        </div>
+    }
+</div>

@@ -1,0 +1,89 @@
+﻿@model IEnumerable<Capitol_Theatre.Data.Movie>
+
+@{
+    ViewData["Title"] = "Now Showing";
+
+    var today = DateTime.Today;
+    var start = today.AddDays(-((int)today.DayOfWeek + 2) % 7); // Most recent Friday
+    var end = start.AddDays(6);
+}
+
+<style>
+    .poster-container {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .poster-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.75);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 1rem;
+        opacity: 0;
+        transition: opacity 0.3s ease-in-out;
+        font-size: 1rem;
+        white-space: pre-line;
+    }
+
+    .poster-container:hover .poster-overlay {
+        opacity: 1;
+    }
+</style>
+
+<div class="container py-4">
+    <h2 class="mb-1">Now Showing</h2>
+    <h5 class="text-muted mb-4">Fri @start.ToString("MMMM d") to Thurs @end.ToString("MMMM d")</h5>
+
+    <div class="d-flex flex-wrap gap-4 justify-content-start">
+        @foreach (var movie in Model)
+        {
+            <div class="card shadow-sm" style="width: 24rem;">
+                <div class="poster-container">
+                    @if (!string.IsNullOrWhiteSpace(movie.TrailerUrl))
+                    {
+                        <a href="@movie.TrailerUrl" target="_blank">
+                            <img src="@movie.PosterPath" class="card-img-top img-fluid" alt="@movie.Title Poster">
+                            <div class="poster-overlay">@movie.Description&#10;&#10;Click to watch the trailer!</div>
+                        </a>
+                    }
+                    else
+                    {
+                        <img src="@movie.PosterPath" class="card-img-top img-fluid" alt="@movie.Title Poster">
+                        <div class="poster-overlay">@movie.Description</div>
+                    }
+                </div>
+
+                <div class="card-body">
+                    <h5 class="card-title">@movie.Title</h5>
+
+                    @if (movie.Showtimes.Any())
+                    {
+                        <p class="card-text mb-1 fs-6">
+                            @Html.Raw(movie.GetFormattedShowtimes().Replace("\n", "<br/>"))
+                        </p>
+                    }
+
+                    @if (movie.EndShowingDate.HasValue)
+                    {
+                        <p class="card-text mb-1">
+                            <strong>Last Showing:</strong>
+                            @movie.EndShowingDate.Value.ToString("dddd MMMM d")
+                        </p>
+                    }
+
+                    <p class="card-text">
+                        <strong>Rating:</strong> @movie.Rating?.Code
+                    </p>
+                </div>
+            </div>
+        }
+    </div>
+</div>
