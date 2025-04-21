@@ -1,9 +1,10 @@
 name: Build and Push to GHCR
 
 on:
-  release:
-    types: [published]
   workflow_dispatch:
+  push:
+    tags:
+      - 'v*.*'
 
 env:
   IMAGE_NAME: ghcr.io/bonejob/capitol-theatre
@@ -16,18 +17,15 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u bonejob --password-stdin
+
       - name: Extract Tag Name
         id: extract_tag
         run: echo "tag=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
 
-      - name: Log in to GitHub Container Registry
-        run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u bonejob --password-stdin
-
-      - name: Build Docker Image
+      - name: Build and Push Docker image
         run: |
           docker build -t $IMAGE_NAME:latest -t $IMAGE_NAME:${{ steps.extract_tag.outputs.tag }} .
-
-      - name: Push Docker Images
-        run: |
           docker push $IMAGE_NAME:latest
           docker push $IMAGE_NAME:${{ steps.extract_tag.outputs.tag }}
