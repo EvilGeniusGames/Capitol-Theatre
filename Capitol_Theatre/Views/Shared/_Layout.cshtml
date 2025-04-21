@@ -1,0 +1,109 @@
+﻿@using Microsoft.AspNetCore.Identity
+@inject Capitol_Theatre.Data.ApplicationDbContext Db
+@inject SignInManager<IdentityUser> SignInManager
+@inject UserManager<IdentityUser> UserManager
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Capitol_Theatre</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/Capitol_Theatre.styles.css" asp-append-version="true" />
+    <style>
+        body {
+            position: relative;
+            background-image: url('/images/logo.png');
+            background-repeat: no-repeat;
+            background-size: 80%;
+            background-position: left;
+            background-attachment: fixed;
+            background-opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="bg-dark text-white py-1">
+        <div class="container pt-2">
+            <h1 class="h2 mb-1">Capitol Theatre</h1>
+            @{
+                var activeNotices = Db.Notices
+                .Where(n => n.PostedAt.Date <= DateTime.Now.Date && n.Expires.Date >= DateTime.Now.Date)
+                .OrderByDescending(n => n.PostedAt)
+                .ToList();
+            }
+
+            @foreach (var notice in activeNotices)
+            {
+                <div class="alert alert-@notice.Color @(notice == activeNotices.First() ? "mt-3" : "mt-1") mb-2">
+                    <strong>Notice:</strong> @notice.Message
+                </div>
+            }
+
+        </div>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top border-bottom">
+        <div class="container">
+            <a class="navbar-brand" href="/">🎬 Capitol Theatre</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item"><a class="nav-link" asp-controller="Movies" asp-action="NowShowing">Now Showing</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-controller="Movies" asp-action="NextWeek">Next Week</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-controller="Movies" asp-action="ComingSoon">Coming Soon</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-controller="Pages" asp-action="GiftCertificates">Gift Certificates</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-controller="Pages" asp-action="Tickets">Tickets</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-controller="Pages" asp-action="Ratings">Ratings</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-controller="Pages" asp-action="ContactUs">Contact</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-controller="Pages" asp-action="FAQ">FAQ</a></li>
+                    @if (User.Identity?.IsAuthenticated ?? false)
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link text-warning" asp-controller="Admin" asp-action="Index">Admin</a>
+                        </li>
+                        <form method="post" asp-area="Identity" asp-page="/Account/Logout" class="d-inline">
+                            <button type="submit" class="btn btn-link nav-link text-danger">Logout</button>
+                        </form>
+                    }
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="https://facebook.com" target="_blank"><i class="bi bi-facebook"></i></a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="https://instagram.com" target="_blank"><i class="bi bi-instagram"></i></a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="https://twitter.com" target="_blank"><i class="bi bi-twitter-x"></i></a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main content -->
+    <main class="container">
+        @RenderBody()
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center">
+        <div class="container">
+            <p>&copy; @DateTime.Now.Year Capitol Theatre | All rights reserved</p>
+        </div>
+    </footer>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

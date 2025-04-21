@@ -1,0 +1,39 @@
+﻿@model Capitol_Theatre.Data.Notice
+@{
+    ViewData["Title"] = "Add New Notice";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h2 class="my-4">➕ Add New Notice</h2>
+
+<div class="card bg-light p-4">
+    <form asp-action="CreateNotice" method="post">
+        <div class="mb-3">
+            <label asp-for="Message" class="form-label">Message</label>
+            <textarea asp-for="Message" class="form-control" rows="4"></textarea>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="PostedAt" class="form-label">Posted At</label>
+            <input asp-for="PostedAt" class="form-control" type="date" />
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Expires" class="form-label">Expires</label>
+            <input asp-for="Expires" class="form-control" type="date" />
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Color" class="form-label">Color</label>
+            <select asp-for="Color" class="form-select">
+                <option value="info">Info (Blue)</option>
+                <option value="warning">Warning (Yellow)</option>
+                <option value="danger">Danger (Red)</option>
+                <option value="success">Success (Green)</option>
+                <option value="primary">Primary (Indigo)</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-success">Save Notice</button>
+    </form>
+</div>

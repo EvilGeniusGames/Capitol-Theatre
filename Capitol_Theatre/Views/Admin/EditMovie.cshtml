@@ -1,0 +1,168 @@
+﻿@model Capitol_Theatre.Data.Movie
+
+@{
+    ViewData["Title"] = "Edit Movie";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h2 class="my-4">✏️ Edit Movie</h2>
+
+<div class="card bg-light p-4">
+    <form asp-action="EditMovie" method="post" enctype="multipart/form-data">
+        <input type="hidden" asp-for="Id" />
+        <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+        <div class="mb-3">
+            <label asp-for="Title" class="form-label"></label>
+            <input asp-for="Title" class="form-control" />
+            <span asp-validation-for="Title" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label for="posterImage" class="form-label">Upload New Poster</label>
+            <input type="file" class="form-control" id="posterImage" name="posterImage" />
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="PosterPath" class="form-label">Or select existing</label>
+            <select asp-for="PosterPath" class="form-select">
+                <option value="">-- Choose existing poster --</option>
+                @if (ViewBag.Posters is List<string> posters)
+                {
+                    foreach (var path in posters)
+                    {
+                        <option value="@path" selected="@(Model.PosterPath == path)">
+                            @System.IO.Path.GetFileName(path)
+                        </option>
+                    }
+                }
+            </select>
+            <span asp-validation-for="PosterPath" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Description" class="form-label"></label>
+            <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+            <span asp-validation-for="Description" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="RatingId" class="form-label">Rating</label>
+            <select asp-for="RatingId" class="form-select" asp-items="ViewBag.Ratings"></select>
+            <span asp-validation-for="RatingId" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="TrailerUrl" class="form-label"></label>
+            <input asp-for="TrailerUrl" class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="runtime" class="form-label">Runtime (minutes)</label>
+            <input asp-for="runtime" class="form-control" type="number" min="0" />
+            <span asp-validation-for="runtime" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="StartShowingDate" class="form-label">Start Showing</label>
+            <input asp-for="StartShowingDate" class="form-control" type="date" />
+            <span asp-validation-for="StartShowingDate" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="EndShowingDate" class="form-label">End Showing</label>
+            <input asp-for="EndShowingDate" class="form-control" type="date" />
+            <span asp-validation-for="EndShowingDate" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Add Showtimes</label>
+            <div class="d-flex align-items-end gap-2">
+                <select class="form-select" id="daySelector">
+                    @foreach (DayOfWeek day in Enum.GetValues(typeof(DayOfWeek)))
+                    {
+                        <option value="@day">@day</option>
+                    }
+                </select>
+
+                <input type="time" class="form-control" id="timeInput" value="19:30" />
+
+                <button type="button" class="btn btn-primary" onclick="addShowtime()">Add</button>
+            </div>
+
+            <ul class="list-group mt-3" id="showtimeList"></ul>
+
+            <input type="hidden" name="ShowtimeEntries" id="ShowtimeEntries" />
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="RunLength" class="form-label">Run Length (days)</label>
+            <input asp-for="RunLength" class="form-control" type="number" min="0" readonly />
+        </div>
+
+        <button type="submit" class="btn btn-success">Save Changes</button>
+        <a asp-action="ManageMovies" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        const showtimes = [];
+
+        function addShowtime() {
+            const day = document.getElementById("daySelector").value;
+            const time = document.getElementById("timeInput").value;
+
+            if (!time) return;
+
+            const entry = `${day}|${time}`;
+            showtimes.push(entry);
+            document.getElementById("ShowtimeEntries").value = showtimes.join(",");
+
+            const listItem = document.createElement("li");
+            listItem.className = "list-group-item";
+
+            const [hour, minute] = time.split(':');
+            const hour12 = ((+hour % 12) || 12);
+            const formattedTime = `${hour12}:${minute}`;
+
+            listItem.innerHTML = `${day} at ${formattedTime} <button type="button" class="btn btn-sm btn-danger float-end" onclick="removeShowtime('${entry}', this)">Remove</button>`;
+            document.getElementById("showtimeList").appendChild(listItem);
+        }
+
+        function removeShowtime(entry, button) {
+            const index = showtimes.indexOf(entry);
+            if (index !== -1) {
+                showtimes.splice(index, 1);
+                document.getElementById("ShowtimeEntries").value = showtimes.join(",");
+                button.closest("li").remove();
+            }
+        }
+
+        // 🔄 Load existing showtimes from model
+        @foreach (var s in Model.Showtimes.OrderBy(s => s.StartTime))
+        {
+            var day = s.StartTime.DayOfWeek;
+            var time = s.StartTime.ToString("HH:mm");
+            <text>addShowtimeFromServer("@day", "@time");</text>
+        }
+
+        function addShowtimeFromServer(day, time) {
+            const entry = `${day}|${time}`;
+            showtimes.push(entry);
+            document.getElementById("ShowtimeEntries").value = showtimes.join(",");
+
+            const listItem = document.createElement("li");
+            listItem.className = "list-group-item";
+
+            const [hour, minute] = time.split(':');
+            const hour12 = ((+hour % 12) || 12);
+            const formattedTime = `${hour12}:${minute}`;
+
+            listItem.innerHTML = `${day} at ${formattedTime} <button type="button" class="btn btn-sm btn-danger float-end" onclick="removeShowtime('${entry}', this)">Remove</button>`;
+            document.getElementById("showtimeList").appendChild(listItem);
+        }
+    </script>
+}

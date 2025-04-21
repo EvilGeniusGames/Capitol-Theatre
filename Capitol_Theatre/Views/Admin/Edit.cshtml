@@ -1,0 +1,138 @@
+﻿@model Capitol_Theatre.Data.PageContent
+
+@{
+    ViewData["Title"] = "Edit Page Content";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h2 class="my-4">📜 Edit @Model.PageKey</h2>
+
+<form asp-action="Edit" method="post" enctype="multipart/form-data">
+    <input type="hidden" asp-for="Id" />
+
+    <div class="mb-3">
+        <label asp-for="PageKey" class="form-label">Page</label>
+        <input asp-for="PageKey" class="form-control" readonly />
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="HtmlContent" class="form-label">Page Content (HTML)</label>
+        <textarea asp-for="HtmlContent" id="editor" class="form-control"></textarea>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="LastUpdated" class="form-label">Last Updatd</label>
+        <input asp-for="LastUpdated" class="form-control" readonly />
+    </div>
+
+    <div class="progress mb-2" style="display: none;" id="uploadProgress">
+        <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%">Uploading...</div>
+    </div>
+
+    <button type="submit" class="btn btn-primary" id="saveBtn">Save</button>
+    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+</form>
+
+<!-- TinyMCE via API Key -->
+<script src="https://cdn.tiny.cloud/1/h7xjwi5fgh5o9dxd1t8ijpcp2qvn6ukazd4t0n8dt6649z1w/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+
+<script>
+    tinymce.init({
+        selector: '#editor',
+        height: 500,
+        plugins: 'image link lists code table charmap emoticons preview searchreplace visualblocks',
+        toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | align lineheight | bullist numlist outdent indent | link image table charmap emoticons | code preview searchreplace visualblocks',
+        automatic_uploads: false,
+        file_picker_types: 'image',
+        file_picker_callback: function (cb, value, meta) {
+            const input = document.createElement('input');
+            input.setAttribute('type', 'file');
+            input.setAttribute('accept', 'image/*');
+
+            input.onchange = function () {
+                const file = this.files[0];
+                const formData = new FormData();
+                formData.append('image', file, file.name);
+
+                fetch('/Admin/UploadImage', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data && data.location) {
+                        cb(data.location, { alt: file.name });
+                    } else {
+                        alert("Upload failed: Invalid response.");
+                    }
+                })
+                .catch(err => {
+                    alert("Upload error: " + err);
+                });
+            };
+
+            // Show existing image chooser if no file selected
+            if (meta.filetype === 'image') {
+                fetch('/Admin/GetUploadedImages')
+                    .then(response => response.json())
+                    .then(images => {
+                        if (!images.length) {
+                            input.click(); // fallback to upload
+                            return;
+                        }
+
+                        const picker = document.createElement('div');
+                        picker.style.position = 'fixed';
+                        picker.style.top = '20%';
+                        picker.style.left = '50%';
+                        picker.style.transform = 'translateX(-50%)';
+                        picker.style.zIndex = 10000;
+                        picker.style.background = '#fff';
+                        picker.style.border = '1px solid #ccc';
+                        picker.style.padding = '10px';
+                        picker.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
+                        picker.style.maxHeight = '400px';
+                        picker.style.overflowY = 'auto';
+
+                        images.forEach(url => {
+                            const img = document.createElement('img');
+                            img.src = url;
+                            img.style.maxWidth = '150px';
+                            img.style.margin = '5px';
+                            img.style.cursor = 'pointer';
+                            img.onclick = () => {
+                                cb(url, { alt: 'Uploaded Image' });
+                                document.body.removeChild(picker);
+                            };
+                            picker.appendChild(img);
+                        });
+
+                        // Add cancel and upload buttons
+                        const actions = document.createElement('div');
+                        actions.style.textAlign = 'right';
+                        actions.style.marginTop = '10px';
+
+                        const uploadBtn = document.createElement('button');
+                        uploadBtn.innerText = 'Upload New';
+                        uploadBtn.onclick = () => {
+                            document.body.removeChild(picker);
+                            input.click();
+                        };
+                        actions.appendChild(uploadBtn);
+
+                        const cancelBtn = document.createElement('button');
+                        cancelBtn.innerText = 'Cancel';
+                        cancelBtn.style.marginLeft = '10px';
+                        cancelBtn.onclick = () => {
+                            document.body.removeChild(picker);
+                        };
+                        actions.appendChild(cancelBtn);
+
+                        picker.appendChild(actions);
+                        document.body.appendChild(picker);
+                    })
+                    .catch(() => input.click()); // fallback to upload on error
+            }
+        }
+    });
+</script>
