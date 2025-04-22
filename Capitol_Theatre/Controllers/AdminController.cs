@@ -1,5 +1,7 @@
 ﻿using Capitol_Theatre.Data;
+using Capitol_Theatre.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -9,16 +11,17 @@ using System.IO;
 [Authorize]
 public class AdminController : Controller
 {
-
     [BindProperty(SupportsGet = false)]
     [ValidateNever]
     public string? ShowtimeEntries { get; set; }
 
     private readonly ApplicationDbContext _context;
+    private readonly UserManager<IdentityUser> _userManager;
 
-    public AdminController(ApplicationDbContext context)
+    public AdminController(ApplicationDbContext context, UserManager<IdentityUser> userManager)
     {
         _context = context;
+        _userManager = userManager;
     }
 
     [Authorize(Roles = "Administrator")]
@@ -26,6 +29,13 @@ public class AdminController : Controller
     {
         var pages = _context.PageContents.ToList();
         return View(pages);
+    }
+
+    [Authorize(Roles = "Administrator")]
+    public async Task<IActionResult> Users()
+    {
+        var users = _userManager.Users.ToList();
+        return View(users);
     }
 
     [HttpPost]
@@ -147,19 +157,14 @@ public class AdminController : Controller
             }
 
             if (string.IsNullOrWhiteSpace(model.PosterPath))
-            {
                 ModelState.AddModelError("PosterPath", "Please upload or select a poster image.");
-            }
 
             if (model.StartShowingDate.HasValue && model.EndShowingDate.HasValue)
-            {
                 model.RunLength = (model.EndShowingDate.Value - model.StartShowingDate.Value).Days;
-            }
 
             if (!ModelState.IsValid)
             {
                 ViewBag.Ratings = new SelectList(_context.Ratings, "Id", "Code", model.RatingId);
-
                 var posterDir = Path.Combine("wwwroot", "images", "posters");
                 ViewBag.Posters = Directory.Exists(posterDir)
                     ? Directory.GetFiles(posterDir).Select(p => "/images/posters/" + Path.GetFileName(p)).ToList()
@@ -177,27 +182,18 @@ public class AdminController : Controller
         {
             Console.WriteLine($"🔥 CreateMovie crashed: {ex.Message}");
             System.IO.File.AppendAllText("/app/log_crash.txt", $"{DateTime.UtcNow:u} - {ex}\n");
-
-            throw; // Optional: rethrow for normal error propagation
+            throw;
         }
     }
-
-
-
 
     [HttpGet]
     [Authorize(Roles = "Administrator")]
     public IActionResult EditMovie(int id)
     {
-        var movie = _context.Movies
-            .Include(m => m.Showtimes)
-            .FirstOrDefault(m => m.Id == id);
-
-        if (movie == null)
-            return NotFound();
+        var movie = _context.Movies.Include(m => m.Showtimes).FirstOrDefault(m => m.Id == id);
+        if (movie == null) return NotFound();
 
         ViewBag.Ratings = new SelectList(_context.Ratings, "Id", "Code", movie.RatingId);
-
         var posterDir = Path.Combine("wwwroot", "images", "posters");
         ViewBag.Posters = Directory.Exists(posterDir)
             ? Directory.GetFiles(posterDir).Select(p => "/images/posters/" + Path.GetFileName(p)).ToList()
@@ -211,7 +207,7 @@ public class AdminController : Controller
     public async Task<IActionResult> EditMovie(Movie model, IFormFile posterImage)
     {
         ModelState.Remove("posterImage");
-        ModelState.Remove(nameof(ShowtimeEntries)); // Optional: defensive
+        ModelState.Remove(nameof(ShowtimeEntries));
 
         var movie = _context.Movies.Include(m => m.Showtimes).FirstOrDefault(m => m.Id == model.Id);
         if (movie == null) return NotFound();
@@ -235,9 +231,7 @@ public class AdminController : Controller
         }
 
         if (string.IsNullOrWhiteSpace(movie.PosterPath))
-        {
             ModelState.AddModelError("PosterPath", "Please upload or select a poster image.");
-        }
 
         movie.Title = model.Title;
         movie.Description = model.Description;
@@ -248,17 +242,13 @@ public class AdminController : Controller
         movie.EndShowingDate = model.EndShowingDate;
 
         if (model.StartShowingDate.HasValue && model.EndShowingDate.HasValue)
-        {
             movie.RunLength = (model.EndShowingDate.Value - model.StartShowingDate.Value).Days;
-        }
 
-        // Parse showtimes from bound property
         var parsedShowtimes = new List<Showtime>();
         if (!string.IsNullOrEmpty(ShowtimeEntries) &&
             movie.StartShowingDate.HasValue && movie.EndShowingDate.HasValue)
         {
             var showtimeParts = ShowtimeEntries.Split(',', StringSplitOptions.RemoveEmptyEntries);
-
             foreach (var entry in showtimeParts)
             {
                 var split = entry.Split('|');
@@ -285,7 +275,6 @@ public class AdminController : Controller
         if (!ModelState.IsValid)
         {
             ViewBag.Ratings = new SelectList(_context.Ratings, "Id", "Code", model.RatingId);
-
             var posterDir = Path.Combine("wwwroot", "images", "posters");
             ViewBag.Posters = Directory.Exists(posterDir)
                 ? Directory.GetFiles(posterDir).Select(p => "/images/posters/" + Path.GetFileName(p)).ToList()
@@ -300,13 +289,10 @@ public class AdminController : Controller
         }
 
         movie.Showtimes = parsedShowtimes;
-
         await _context.SaveChangesAsync();
+
         return RedirectToAction("ManageMovies");
     }
-
-
-
 
     [Authorize(Roles = "Administrator")]
     [HttpGet]
@@ -320,8 +306,6 @@ public class AdminController : Controller
 
         return RedirectToAction("ManageMovies");
     }
-
-    // --- Notices Management ---
 
     [HttpGet]
     [Authorize(Roles = "Administrator")]
@@ -396,4 +380,118 @@ public class AdminController : Controller
         await _context.SaveChangesAsync();
         return RedirectToAction(nameof(Notices));
     }
+
+    [HttpGet]
+    [Authorize(Roles = "Administrator")]
+    public IActionResult CreateUser()
+    {
+        return View();
+    }
+
+    [HttpPost]
+    [Authorize(Roles = "Administrator")]
+    public async Task<IActionResult> CreateUser(CreateUserViewModel model)
+    {
+        if (!ModelState.IsValid)
+            return View(model);
+
+        var user = new IdentityUser { UserName = model.Email, Email = model.Email };
+        var result = await _userManager.CreateAsync(user, model.Password);
+
+        if (result.Succeeded)
+        {
+            await _userManager.AddToRoleAsync(user, "Administrator");
+            return RedirectToAction("Users");
+        }
+
+        foreach (var error in result.Errors)
+            ModelState.AddModelError(string.Empty, error.Description);
+
+        return View(model);
+    }
+
+    [HttpGet]
+    [Authorize(Roles = "Administrator")]
+    public async Task<IActionResult> DeleteUser(string id)
+    {
+        var user = await _userManager.FindByIdAsync(id);
+        if (user == null) return NotFound();
+
+        return View(user);
+    }
+
+    [HttpPost, ActionName("DeleteUser")]
+    [Authorize(Roles = "Administrator")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteUserConfirmed(string id)
+    {
+        var user = await _userManager.FindByIdAsync(id);
+        if (user == null) return NotFound();
+
+        var result = await _userManager.DeleteAsync(user);
+        if (!result.Succeeded)
+        {
+            foreach (var error in result.Errors)
+                ModelState.AddModelError(string.Empty, error.Description);
+
+            return View(user);
+        }
+
+        return RedirectToAction("Users");
+    }
+
+    [HttpGet]
+    [Authorize(Roles = "Administrator")]
+    public async Task<IActionResult> EditUser(string id)
+    {
+        var user = await _userManager.FindByIdAsync(id);
+        if (user == null) return NotFound();
+
+        var model = new EditUserViewModel
+        {
+            Id = user.Id,
+            Email = user.Email
+        };
+
+        return View(model);
+    }
+
+    [HttpPost]
+    [Authorize(Roles = "Administrator")]
+    public async Task<IActionResult> EditUser(EditUserViewModel model)
+    {
+        if (!ModelState.IsValid)
+            return View(model);
+
+        var user = await _userManager.FindByIdAsync(model.Id);
+        if (user == null) return NotFound();
+
+        user.Email = model.Email;
+        user.UserName = model.Email;
+
+        var updateResult = await _userManager.UpdateAsync(user);
+        if (!updateResult.Succeeded)
+        {
+            foreach (var error in updateResult.Errors)
+                ModelState.AddModelError(string.Empty, error.Description);
+            return View(model);
+        }
+
+        if (!string.IsNullOrWhiteSpace(model.NewPassword))
+        {
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var passwordResult = await _userManager.ResetPasswordAsync(user, token, model.NewPassword);
+
+            if (!passwordResult.Succeeded)
+            {
+                foreach (var error in passwordResult.Errors)
+                    ModelState.AddModelError(string.Empty, error.Description);
+                return View(model);
+            }
+        }
+
+        return RedirectToAction("Users");
+    }
+
+
 }

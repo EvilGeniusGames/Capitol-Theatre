@@ -70,3 +70,5 @@ ehthumbs.db
 
 # Container Files
 /SiteData/
+.env
+docker-compose.override.yml
