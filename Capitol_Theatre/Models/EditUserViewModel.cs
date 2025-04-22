@@ -4,7 +4,7 @@ namespace Capitol_Theatre.Models
 {
     public class EditUserViewModel
     {
-        public string Id { get; set; }
+        public string? Id { get; set; } // null or empty = new user
 
         [Required]
         [EmailAddress]
@@ -13,8 +13,8 @@ namespace Capitol_Theatre.Models
         [DataType(DataType.Password)]
         public string? NewPassword { get; set; }
 
-        [DataType(DataType.Password)]
         [Compare("NewPassword", ErrorMessage = "Passwords do not match.")]
+        [DataType(DataType.Password)]
         public string? ConfirmPassword { get; set; }
     }
 }

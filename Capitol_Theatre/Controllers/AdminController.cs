@@ -77,14 +77,14 @@ public class AdminController : Controller
     {
         var page = _context.PageContents.FirstOrDefault(p => p.Id == id);
         if (page == null) return NotFound();
-        return View("Edit", page);
+        return View("EditPage", page);
     }
 
     [HttpPost]
     [Authorize(Roles = "Administrator")]
     public IActionResult Edit(PageContent model)
     {
-        if (!ModelState.IsValid) return View("Edit", model);
+        if (!ModelState.IsValid) return View("EditPage", model);
 
         var page = _context.PageContents.Find(model.Id);
         if (page == null) return NotFound();
@@ -381,35 +381,7 @@ public class AdminController : Controller
         return RedirectToAction(nameof(Notices));
     }
 
-    [HttpGet]
-    [Authorize(Roles = "Administrator")]
-    public IActionResult CreateUser()
-    {
-        return View();
-    }
-
-    [HttpPost]
-    [Authorize(Roles = "Administrator")]
-    public async Task<IActionResult> CreateUser(CreateUserViewModel model)
-    {
-        if (!ModelState.IsValid)
-            return View(model);
-
-        var user = new IdentityUser { UserName = model.Email, Email = model.Email };
-        var result = await _userManager.CreateAsync(user, model.Password);
-
-        if (result.Succeeded)
-        {
-            await _userManager.AddToRoleAsync(user, "Administrator");
-            return RedirectToAction("Users");
-        }
-
-        foreach (var error in result.Errors)
-            ModelState.AddModelError(string.Empty, error.Description);
-
-        return View(model);
-    }
-
+   
     [HttpGet]
     [Authorize(Roles = "Administrator")]
     public async Task<IActionResult> DeleteUser(string id)
@@ -442,55 +414,85 @@ public class AdminController : Controller
 
     [HttpGet]
     [Authorize(Roles = "Administrator")]
-    public async Task<IActionResult> EditUser(string id)
+    public async Task<IActionResult> ManageUser(string? id)
     {
+        if (string.IsNullOrEmpty(id))
+        {
+            // Create mode
+            return View(new EditUserViewModel());
+        }
+
         var user = await _userManager.FindByIdAsync(id);
         if (user == null) return NotFound();
 
-        var model = new EditUserViewModel
+        return View(new EditUserViewModel
         {
             Id = user.Id,
             Email = user.Email
-        };
-
-        return View(model);
+        });
     }
 
     [HttpPost]
     [Authorize(Roles = "Administrator")]
-    public async Task<IActionResult> EditUser(EditUserViewModel model)
+    public async Task<IActionResult> ManageUser(EditUserViewModel model)
     {
+        if (string.IsNullOrEmpty(model.Id) && string.IsNullOrWhiteSpace(model.NewPassword))
+        {
+            ModelState.AddModelError("NewPassword", "Password is required when creating a user.");
+        }
+
         if (!ModelState.IsValid)
             return View(model);
 
-        var user = await _userManager.FindByIdAsync(model.Id);
-        if (user == null) return NotFound();
-
-        user.Email = model.Email;
-        user.UserName = model.Email;
-
-        var updateResult = await _userManager.UpdateAsync(user);
-        if (!updateResult.Succeeded)
+        if (string.IsNullOrEmpty(model.Id))
         {
-            foreach (var error in updateResult.Errors)
-                ModelState.AddModelError(string.Empty, error.Description);
-            return View(model);
-        }
+            // Create
+            var user = new IdentityUser { UserName = model.Email, Email = model.Email };
+            var result = await _userManager.CreateAsync(user, model.NewPassword!);
 
-        if (!string.IsNullOrWhiteSpace(model.NewPassword))
-        {
-            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-            var passwordResult = await _userManager.ResetPasswordAsync(user, token, model.NewPassword);
-
-            if (!passwordResult.Succeeded)
+            if (result.Succeeded)
             {
-                foreach (var error in passwordResult.Errors)
+                await _userManager.AddToRoleAsync(user, "Administrator");
+                return RedirectToAction("Users");
+            }
+
+            foreach (var error in result.Errors)
+                ModelState.AddModelError(string.Empty, error.Description);
+        }
+        else
+        {
+            // Edit
+            var user = await _userManager.FindByIdAsync(model.Id);
+            if (user == null) return NotFound();
+
+            user.Email = model.Email;
+            user.UserName = model.Email;
+
+            var updateResult = await _userManager.UpdateAsync(user);
+            if (!updateResult.Succeeded)
+            {
+                foreach (var error in updateResult.Errors)
                     ModelState.AddModelError(string.Empty, error.Description);
                 return View(model);
             }
+
+            if (!string.IsNullOrWhiteSpace(model.NewPassword))
+            {
+                var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+                var passwordResult = await _userManager.ResetPasswordAsync(user, token, model.NewPassword!);
+
+                if (!passwordResult.Succeeded)
+                {
+                    foreach (var error in passwordResult.Errors)
+                        ModelState.AddModelError(string.Empty, error.Description);
+                    return View(model);
+                }
+            }
+
+            return RedirectToAction("Users");
         }
 
-        return RedirectToAction("Users");
+        return View(model); // In case of creation failure
     }
 
 
