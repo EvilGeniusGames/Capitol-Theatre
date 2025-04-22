@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace Capitol_Theatre.Views.Admin
 {
-    public class EditUserModel : PageModel
+    public class ManageUserModel : PageModel
     {
         public void OnGet()
         {

@@ -1,13 +1,15 @@
 ﻿@model Capitol_Theatre.Models.EditUserViewModel
 
 @{
-    ViewData["Title"] = "Edit User";
+    ViewData["Title"] = Model.Id == null ? "Create User" : "Edit User";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h2 class="my-4">✏️ Edit User</h2>
+<h2 class="my-4">
+    @(Model.Id == null ? "➕ Create User" : "✏️ Edit User")
+</h2>
 
-<form asp-action="EditUser" method="post">
+<form asp-action="ManageUser" method="post">
     <div asp-validation-summary="All" class="text-danger"></div>
     <input type="hidden" asp-for="Id" />
 
@@ -17,7 +19,6 @@
         <span asp-validation-for="Email" class="text-danger"></span>
     </div>
 
-    <!-- ✅ Plain HTML block: no Razor prefix -->
     <div class="alert alert-info">
         <strong>Password Requirements:</strong>
         <ul class="mb-0">
@@ -25,12 +26,14 @@
             <li>Must contain at least one <strong>uppercase letter</strong></li>
             <li>Must contain at least one <strong>lowercase letter</strong></li>
             <li>Must contain at least one <strong>digit</strong></li>
-            <li>Must include at least one <strong>non-alphanumeric character</strong> (e.g., <code>!</code>, <code>#</code>)</li>
+            <li>Must include at least one <strong>non-alphanumeric character</strong> (e.g.,<code>!</code>, <code>#</code>)</li>
         </ul>
     </div>
 
     <div class="mb-3">
-        <label asp-for="NewPassword" class="form-label">New Password (optional)</label>
+        <label asp-for="NewPassword" class="form-label">
+            @(Model.Id == null ? "Password" : "New Password (leave blank to keep current)")
+        </label>
         <input asp-for="NewPassword" class="form-control" type="password" />
         <span asp-validation-for="NewPassword" class="text-danger"></span>
     </div>
@@ -41,7 +44,9 @@
         <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
     </div>
 
-    <button type="submit" class="btn btn-primary">Save Changes</button>
+    <button type="submit" class="btn btn-primary">
+        @(Model.Id == null ? "Create User" : "Save Changes")
+    </button>
     <a asp-action="Users" class="btn btn-secondary">Cancel</a>
 </form>
 
