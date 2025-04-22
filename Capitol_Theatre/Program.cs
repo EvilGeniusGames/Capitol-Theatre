@@ -4,6 +4,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Identity.UI;
 using Microsoft.Extensions.Configuration;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.DataProtection;
 
 public class Program
 {
@@ -11,7 +14,16 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        // Load base config + environment-specific config + env vars + secrets
+        // ⬇️ Ensure launchSettings.json is included
+        builder.Host.ConfigureAppConfiguration((hostingContext, config) =>
+        {
+            config.AddJsonFile("Properties/launchSettings.json", optional: true, reloadOnChange: true);
+        });
+
+        builder.Logging.AddConsole();
+        var logger = builder.Logging.Services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
+        logger.LogInformation("🚀 Logging initialized");
+
         builder.Configuration
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
             .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
@@ -31,7 +43,9 @@ public class Program
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
 
-        builder.Services.AddControllersWithViews();
+        builder.Services.AddControllersWithViews().AddRazorRuntimeCompilation();
+        builder.Services.AddDataProtection().PersistKeysToFileSystem(new DirectoryInfo("/app/keyring"));
+
         builder.Services.AddRazorPages();
         SQLitePCL.Batteries_V2.Init();
 
@@ -76,7 +90,6 @@ public class Program
 
         app.MapRazorPages();
 
-        // Ensure DB is migrated before any identity/role operations
         using (var migrationScope = app.Services.CreateScope())
         {
             var db = migrationScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -119,6 +132,12 @@ public class Program
                 await userManager.AddToRoleAsync(user, "Administrator");
             }
         }
+
+        AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
+        {
+            Console.WriteLine("🔴 Unhandled exception: " + e.ExceptionObject?.ToString());
+            System.IO.File.AppendAllText("crash.log", $"[Unhandled] {e.ExceptionObject}\n");
+        };
 
         await app.RunAsync();
     }

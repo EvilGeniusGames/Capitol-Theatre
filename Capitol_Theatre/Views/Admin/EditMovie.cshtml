@@ -142,11 +142,14 @@
         }
 
         // 🔄 Load existing showtimes from model
-        @foreach (var s in Model.Showtimes.OrderBy(s => s.StartTime))
+        @if (Model.Showtimes != null)
         {
-            var day = s.StartTime.DayOfWeek;
-            var time = s.StartTime.ToString("HH:mm");
-            <text>addShowtimeFromServer("@day", "@time");</text>
+            foreach (var s in Model.Showtimes.OrderBy(s => s.StartTime))
+            {
+                var day = s.StartTime.DayOfWeek;
+                var time = s.StartTime.ToString("HH:mm");
+                <text>addShowtimeFromServer("@day", "@time");</text>
+            }
         }
 
         function addShowtimeFromServer(day, time) {

@@ -1,6 +1,7 @@
 ﻿using Capitol_Theatre.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using System.IO;
@@ -8,6 +9,11 @@ using System.IO;
 [Authorize]
 public class AdminController : Controller
 {
+
+    [BindProperty(SupportsGet = false)]
+    [ValidateNever]
+    public string? ShowtimeEntries { get; set; }
+
     private readonly ApplicationDbContext _context;
 
     public AdminController(ApplicationDbContext context)
@@ -119,82 +125,65 @@ public class AdminController : Controller
 
     [HttpPost]
     [Authorize(Roles = "Administrator")]
-    public async Task<IActionResult> CreateMovie(Movie model, IFormFile posterImage, string ShowtimeEntries)
+    public async Task<IActionResult> CreateMovie(Movie model, IFormFile posterImage)
     {
-        ModelState.Remove(nameof(posterImage));
-        model.Showtimes ??= new List<Showtime>();
-
-        if (posterImage != null && posterImage.Length > 0)
+        try
         {
-            var folderPath = Path.Combine("wwwroot", "images", "posters");
-            Directory.CreateDirectory(folderPath);
+            ModelState.Remove(nameof(posterImage));
+            model.Showtimes ??= new List<Showtime>();
 
-            var fileName = $"{Guid.NewGuid()}_{Path.GetFileName(posterImage.FileName)}";
-            var filePath = Path.Combine(folderPath, fileName);
-
-            using var stream = new FileStream(filePath, FileMode.Create);
-            await posterImage.CopyToAsync(stream);
-
-            model.PosterPath = "/images/posters/" + fileName;
-        }
-
-        if (string.IsNullOrWhiteSpace(model.PosterPath))
-        {
-            ModelState.AddModelError("PosterPath", "Please upload or select a poster image.");
-        }
-
-        if (model.StartShowingDate.HasValue && model.EndShowingDate.HasValue)
-        {
-            model.RunLength = (model.EndShowingDate.Value - model.StartShowingDate.Value).Days;
-        }
-
-        if (!ModelState.IsValid)
-        {
-            ViewBag.Ratings = new SelectList(_context.Ratings, "Id", "Code", model.RatingId);
-
-            var posterDir = Path.Combine("wwwroot", "images", "posters");
-            ViewBag.Posters = Directory.Exists(posterDir)
-                ? Directory.GetFiles(posterDir).Select(p => "/images/posters/" + Path.GetFileName(p)).ToList()
-                : new List<string>();
-
-            return View(model);
-        }
-
-        _context.Movies.Add(model);
-        await _context.SaveChangesAsync();
-
-        if (!string.IsNullOrEmpty(ShowtimeEntries) &&
-            model.StartShowingDate.HasValue && model.EndShowingDate.HasValue)
-        {
-            var showtimeParts = ShowtimeEntries.Split(',', StringSplitOptions.RemoveEmptyEntries);
-
-            foreach (var entry in showtimeParts)
+            if (posterImage != null && posterImage.Length > 0)
             {
-                var split = entry.Split('|');
-                if (split.Length != 2) continue;
+                var folderPath = Path.Combine("wwwroot", "images", "posters");
+                Directory.CreateDirectory(folderPath);
 
-                if (Enum.TryParse<DayOfWeek>(split[0], out var day) &&
-                    TimeSpan.TryParse(split[1], out var time))
-                {
-                    for (var d = model.StartShowingDate.Value; d <= model.EndShowingDate.Value; d = d.AddDays(1))
-                    {
-                        if (d.DayOfWeek == day)
-                        {
-                            model.Showtimes.Add(new Showtime
-                            {
-                                MovieId = model.Id,
-                                StartTime = d.Date + time
-                            });
-                        }
-                    }
-                }
+                var fileName = $"{Guid.NewGuid()}_{Path.GetFileName(posterImage.FileName)}";
+                var filePath = Path.Combine(folderPath, fileName);
+
+                using var stream = new FileStream(filePath, FileMode.Create);
+                await posterImage.CopyToAsync(stream);
+
+                model.PosterPath = "/images/posters/" + fileName;
             }
 
-            await _context.SaveChangesAsync();
-        }
+            if (string.IsNullOrWhiteSpace(model.PosterPath))
+            {
+                ModelState.AddModelError("PosterPath", "Please upload or select a poster image.");
+            }
 
-        return RedirectToAction("ManageMovies");
+            if (model.StartShowingDate.HasValue && model.EndShowingDate.HasValue)
+            {
+                model.RunLength = (model.EndShowingDate.Value - model.StartShowingDate.Value).Days;
+            }
+
+            if (!ModelState.IsValid)
+            {
+                ViewBag.Ratings = new SelectList(_context.Ratings, "Id", "Code", model.RatingId);
+
+                var posterDir = Path.Combine("wwwroot", "images", "posters");
+                ViewBag.Posters = Directory.Exists(posterDir)
+                    ? Directory.GetFiles(posterDir).Select(p => "/images/posters/" + Path.GetFileName(p)).ToList()
+                    : new List<string>();
+
+                return View(model);
+            }
+
+            _context.Movies.Add(model);
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction("ManageMovies");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"🔥 CreateMovie crashed: {ex.Message}");
+            System.IO.File.AppendAllText("/app/log_crash.txt", $"{DateTime.UtcNow:u} - {ex}\n");
+
+            throw; // Optional: rethrow for normal error propagation
+        }
     }
+
+
+
 
     [HttpGet]
     [Authorize(Roles = "Administrator")]
@@ -219,9 +208,10 @@ public class AdminController : Controller
 
     [HttpPost]
     [Authorize(Roles = "Administrator")]
-    public async Task<IActionResult> EditMovie(Movie model, IFormFile posterImage, string ShowtimeEntries)
+    public async Task<IActionResult> EditMovie(Movie model, IFormFile posterImage)
     {
         ModelState.Remove("posterImage");
+        ModelState.Remove(nameof(ShowtimeEntries)); // Optional: defensive
 
         var movie = _context.Movies.Include(m => m.Showtimes).FirstOrDefault(m => m.Id == model.Id);
         if (movie == null) return NotFound();
@@ -262,21 +252,8 @@ public class AdminController : Controller
             movie.RunLength = (model.EndShowingDate.Value - model.StartShowingDate.Value).Days;
         }
 
-        if (!ModelState.IsValid)
-        {
-            ViewBag.Ratings = new SelectList(_context.Ratings, "Id", "Code", model.RatingId);
-
-            var posterDir = Path.Combine("wwwroot", "images", "posters");
-            ViewBag.Posters = Directory.Exists(posterDir)
-                ? Directory.GetFiles(posterDir).Select(p => "/images/posters/" + Path.GetFileName(p)).ToList()
-                : new List<string>();
-
-            return View(model);
-        }
-
-        _context.Showtimes.RemoveRange(movie.Showtimes);
-        movie.Showtimes.Clear();
-
+        // Parse showtimes from bound property
+        var parsedShowtimes = new List<Showtime>();
         if (!string.IsNullOrEmpty(ShowtimeEntries) &&
             movie.StartShowingDate.HasValue && movie.EndShowingDate.HasValue)
         {
@@ -294,7 +271,7 @@ public class AdminController : Controller
                     {
                         if (d.DayOfWeek == day)
                         {
-                            movie.Showtimes.Add(new Showtime
+                            parsedShowtimes.Add(new Showtime
                             {
                                 MovieId = movie.Id,
                                 StartTime = d.Date + time
@@ -305,9 +282,31 @@ public class AdminController : Controller
             }
         }
 
+        if (!ModelState.IsValid)
+        {
+            ViewBag.Ratings = new SelectList(_context.Ratings, "Id", "Code", model.RatingId);
+
+            var posterDir = Path.Combine("wwwroot", "images", "posters");
+            ViewBag.Posters = Directory.Exists(posterDir)
+                ? Directory.GetFiles(posterDir).Select(p => "/images/posters/" + Path.GetFileName(p)).ToList()
+                : new List<string>();
+
+            return View(model);
+        }
+
+        if (movie.Showtimes != null && movie.Showtimes.Any())
+        {
+            _context.Showtimes.RemoveRange(movie.Showtimes);
+        }
+
+        movie.Showtimes = parsedShowtimes;
+
         await _context.SaveChangesAsync();
         return RedirectToAction("ManageMovies");
     }
+
+
+
 
     [Authorize(Roles = "Administrator")]
     [HttpGet]
