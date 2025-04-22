@@ -8,6 +8,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{81758BE4-9A53-48D4-82A6-BB0D51D6648D}"
 	ProjectSection(SolutionItems) = preProject
 		.dockerignore = .dockerignore
+		.env = .env
 		.gitignore = .gitignore
 		docker-compose.yml = docker-compose.yml
 		nuget.config = nuget.config

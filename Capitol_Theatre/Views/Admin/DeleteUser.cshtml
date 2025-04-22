@@ -1,0 +1,18 @@
+﻿@model Microsoft.AspNetCore.Identity.IdentityUser
+
+@{
+    ViewData["Title"] = "Delete User";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h2 class="my-4 text-danger">⚠️ Delete User</h2>
+
+<div class="alert alert-warning">
+    Are you sure you want to delete <strong>@Model.Email</strong>?
+</div>
+
+<form asp-action="DeleteUser" method="post">
+    <input type="hidden" asp-for="Id" />
+    <button type="submit" class="btn btn-danger">Delete</button>
+    <a asp-action="Users" class="btn btn-secondary">Cancel</a>
+</form>

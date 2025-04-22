@@ -1,0 +1,37 @@
+﻿@model List<Microsoft.AspNetCore.Identity.IdentityUser>
+
+@{
+    ViewData["Title"] = "User Management";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h2 class="my-4">👥 User Management</h2>
+
+<div class="mb-3">
+    <a href="@Url.Action("CreateUser", "Admin")" class="btn btn-success">
+        ➕ Create New User
+    </a>
+</div>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Email</th>
+            <th>User ID</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var user in Model)
+        {
+            <tr>
+                <td>@user.Email</td>
+                <td>@user.Id</td>
+                <td>
+                    <a class="btn btn-sm btn-warning" href="@Url.Action("EditUser", "Admin", new { id = user.Id })">Edit</a>
+                    <a class="btn btn-sm btn-danger" href="@Url.Action("DeleteUser", "Admin", new { id = user.Id })">Delete</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

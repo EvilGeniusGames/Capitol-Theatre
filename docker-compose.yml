@@ -4,3 +4,17 @@ services:
     build:
       context: .
       dockerfile: Capitol_Theatre/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8080
+      - EnableAdminSeeding=true  
+      - AdminEmail=${AdminEmail}
+      - AdminPassword=${AdminPassword}
+    ports:
+      - "32770:8080"
+    volumes:
+      - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
+      - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro
+      - ./SiteData/images:/app/wwwroot/images
+      - ./SiteData/Database:/app/Database
+      - ./SiteData/keyring:/app/keyring

@@ -4,24 +4,35 @@
 
 <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
 
+    <!-- User Management -->
+    <div class="col">
+        <div class="card shadow h-100 rounded-2xl p-3">
+            <div class="card-body d-flex flex-column">
+                <h5 class="card-title">👥 User Management</h5>
+                <p class="card-text flex-grow-1">View and manage administrator accounts.</p>
+                <a href="/Admin/Users" class="btn btn-primary mt-auto">Edit</a>
+            </div>
+        </div>
+    </div>
+
     <!-- Movies Editor -->
     <div class="col">
-        <div class="card h-100 border-dark">
-            <div class="card-body">
+        <div class="card shadow h-100 rounded-2xl p-3">
+            <div class="card-body d-flex flex-column">
                 <h5 class="card-title"><i class="bi bi-film"></i> Edit Movies</h5>
-                <p class="card-text">Manage currently showing, upcoming, and archived films.</p>
-                <a asp-controller="Admin" asp-action="ManageMovies" class="btn btn-primary">Open</a>
+                <p class="card-text flex-grow-1">Manage currently showing, upcoming, and archived films.</p>
+                <a asp-controller="Admin" asp-action="ManageMovies" class="btn btn-primary mt-auto">Edit</a>
             </div>
         </div>
     </div>
 
     <!-- Notice Editor -->
     <div class="col">
-        <div class="card h-100 border-dark">
-            <div class="card-body">
+        <div class="card shadow h-100 rounded-2xl p-3">
+            <div class="card-body d-flex flex-column">
                 <h5 class="card-title">📝 Notice System</h5>
-                <p class="card-text">Manage public notices displayed.</p>
-                <a href="/Admin/Notices" class="btn btn-primary">Edit Notices</a>
+                <p class="card-text flex-grow-1">Manage public notices displayed.</p>
+                <a href="/Admin/Notices" class="btn btn-primary mt-auto">Edit</a>
             </div>
         </div>
     </div>
@@ -30,11 +41,11 @@
     @foreach (var content in Model)
     {
         <div class="col">
-            <div class="card h-100 border-dark">
-                <div class="card-body">
+            <div class="card shadow h-100 rounded-2xl p-3">
+                <div class="card-body d-flex flex-column">
                     <h5 class="card-title"><i class="bi bi-pencil-square"></i> Edit @content.PageKey</h5>
-                    <p class="card-text">Update the content of this page.</p>
-                    <a asp-controller="Admin" asp-action="Edit" asp-route-id="@content.Id" class="btn btn-primary">Edit</a>
+                    <p class="card-text flex-grow-1">Update the content of this page.</p>
+                    <a asp-controller="Admin" asp-action="Edit" asp-route-id="@content.Id" class="btn btn-primary mt-auto">Edit</a>
                 </div>
             </div>
         </div>
