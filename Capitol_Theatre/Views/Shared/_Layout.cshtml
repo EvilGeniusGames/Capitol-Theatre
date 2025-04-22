@@ -92,7 +92,17 @@
 
     <!-- Main content -->
     <main class="container">
-        @RenderBody()
+        @try
+        {
+            @RenderBody()
+        }
+        catch (Exception ex)
+        {
+            <div class="alert alert-danger mt-4">
+                <h5>🔥 Razor runtime error</h5>
+                <pre>@ex.Message</pre>
+            </div>
+        }
     </main>
 
     <!-- Footer -->
