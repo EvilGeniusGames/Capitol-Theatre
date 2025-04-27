@@ -7,7 +7,7 @@ on:
       - 'v*.*'
 
 env:
-  IMAGE_NAME: ghcr.io/bonejob/capitol-theatre
+  IMAGE_NAME: ghcr.io/evilgeniusgames/capitol-theatre
 
 jobs:
   build-and-push:
