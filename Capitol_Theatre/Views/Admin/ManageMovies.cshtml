@@ -1,8 +1,12 @@
-﻿@model IEnumerable<Capitol_Theatre.Data.Movie>
+﻿@model IEnumerable<Capitol_Theatre.Models.MovieListing>
 
 @{
     ViewData["Title"] = "Manage Movies";
     Layout = "~/Views/Shared/_Layout.cshtml";
+
+    string sort = ViewBag.Sort ?? "Status";
+    string dir = ViewBag.Dir ?? "asc";
+    string NextDir(string currentSort) => sort == currentSort && dir == "asc" ? "desc" : "asc";
 }
 
 <h2 class="my-4">🎬 Manage Movies</h2>
@@ -13,33 +17,31 @@
     <table class="table table-striped">
         <thead class="table-dark">
             <tr>
-                <th>Title</th>
-                <th>Rating</th>
-                <th>Runtime</th>
-                <th>Start - End Dates</th>
-                <th></th>
+                <th><a asp-action="ManageMovies" asp-route-sort="Title" asp-route-dir="@NextDir("Title")">Title</a></th>
+                <th><a asp-action="ManageMovies" asp-route-sort="Status" asp-route-dir="@NextDir("Status")">Status</a></th>
+                <th><a asp-action="ManageMovies" asp-route-sort="Rating" asp-route-dir="@NextDir("Rating")">Rating</a></th>
+                <th><a asp-action="ManageMovies" asp-route-sort="Runtime" asp-route-dir="@NextDir("Runtime")">Runtime</a></th>
+                <th><a asp-action="ManageMovies" asp-route-sort="Dates" asp-route-dir="@NextDir("Dates")">Start - End Dates</a></th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
-            @foreach (var movie in Model)
+            @foreach (var item in Model)
             {
                 <tr>
-                    <td>@movie.Title</td>
-                    <td>@movie.Rating?.Code</td>
-                    <td>@(movie.runtime ?? 0) mins</td>
+                    <td>@item.Movie.Title</td>
+                    <td>@item.Status</td>
+                    <td>@item.Movie.Rating?.Code</td>
+                    <td>@(item.Movie.runtime ?? 0) mins</td>
                     <td>
-                        @movie.StartShowingDate?.ToShortDateString()
+                        @item.Movie.StartShowingDate?.ToShortDateString()
                         -
-                        @movie.EndShowingDate?.ToShortDateString()
+                        @item.Movie.EndShowingDate?.ToShortDateString()
                     </td>
                     <td>
-                        <a asp-action="EditMovie" asp-route-id="@movie.Id" class="btn btn-sm btn-warning">Edit</a>
-                        <a asp-action="DeleteMovie"
-                           asp-route-id="@movie.Id"
-                           class="btn btn-sm btn-danger"
-                           onclick="return confirm('Are you sure you want to delete this movie?');">
-                            Delete
-                        </a>
+                        <a asp-action="EditMovie" asp-route-id="@item.Movie.Id" class="btn btn-sm btn-warning">Edit</a>
+                        <a asp-action="DeleteMovie" asp-route-id="@item.Movie.Id" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this movie?');">Delete</a>
+
                     </td>
                 </tr>
             }

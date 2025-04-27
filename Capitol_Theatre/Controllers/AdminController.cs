@@ -113,10 +113,54 @@ public class AdminController : Controller
 
     [Authorize(Roles = "Administrator")]
     [HttpGet]
-    public IActionResult ManageMovies()
+    public IActionResult ManageMovies(string sort = "Status", string dir = "asc")
     {
-        var movies = _context.Movies.Include(m => m.Rating).ToList();
-        return View(movies);
+        var movies = _context.Movies.Include(m => m.Rating).Include(m => m.Showtimes).ToList();
+
+        DateTime today = DateTime.Today;
+        DateTime thisFriday = today.AddDays(-((int)today.DayOfWeek + 2) % 7);
+        DateTime twoFridays = thisFriday.AddDays(14);
+
+        string GetMovieStatus(Movie movie)
+        {
+            if (movie.EndShowingDate.HasValue && movie.EndShowingDate.Value < today)
+                return "Expired";
+            if (movie.StartShowingDate.HasValue)
+            {
+                if (movie.StartShowingDate.Value <= thisFriday && (!movie.EndShowingDate.HasValue || movie.EndShowingDate >= today))
+                    return "Now Showing";
+                if (movie.StartShowingDate.Value >= thisFriday && movie.StartShowingDate.Value < twoFridays)
+                    return "Next Week";
+                if (movie.StartShowingDate.Value >= twoFridays)
+                    return "Coming Soon";
+            }
+            return "Unscheduled";
+        }
+
+        var sortedMovies = movies.Select(m => new MovieListing
+        {
+            Movie = m,
+            Status = GetMovieStatus(m)
+        });
+
+        sortedMovies = (sort, dir) switch
+        {
+            ("Title", "asc") => sortedMovies.OrderBy(m => m.Movie.Title),
+            ("Title", "desc") => sortedMovies.OrderByDescending(m => m.Movie.Title),
+            ("Rating", "asc") => sortedMovies.OrderBy(m => m.Movie.Rating?.Code),
+            ("Rating", "desc") => sortedMovies.OrderByDescending(m => m.Movie.Rating?.Code),
+            ("Runtime", "asc") => sortedMovies.OrderBy(m => m.Movie.runtime),
+            ("Runtime", "desc") => sortedMovies.OrderByDescending(m => m.Movie.runtime),
+            ("Dates", "asc") => sortedMovies.OrderBy(m => m.Movie.StartShowingDate),
+            ("Dates", "desc") => sortedMovies.OrderByDescending(m => m.Movie.StartShowingDate),
+            ("Status", "desc") => sortedMovies.OrderByDescending(m => m.Status),
+            _ => sortedMovies.OrderBy(m => m.Status)
+        };
+
+        ViewBag.Sort = sort;
+        ViewBag.Dir = dir;
+
+        return View(sortedMovies.ToList());
     }
 
     [HttpGet]
@@ -132,6 +176,7 @@ public class AdminController : Controller
 
         return View();
     }
+
 
     [HttpPost]
     [Authorize(Roles = "Administrator")]
