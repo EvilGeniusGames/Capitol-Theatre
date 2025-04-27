@@ -1,15 +1,25 @@
 ﻿@model Capitol_Theatre.Data.Movie
 
 @{
-    ViewData["Title"] = "Edit Movie";
+    var mode = ViewBag.Mode as string ?? "Create";
+    bool isEdit = mode.Equals("Edit", StringComparison.OrdinalIgnoreCase);
+
+    ViewData["Title"] = isEdit ? "Edit Movie" : "Add New Movie";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h2 class="my-4">✏️ Edit Movie</h2>
+<h2 class="my-4">@((isEdit ? "✏️ Edit Movie" : "➕ Add New Movie"))</h2>
 
 <div class="card bg-light p-4">
-    <form asp-action="EditMovie" method="post" enctype="multipart/form-data">
-        <input type="hidden" asp-for="Id" />
+    <form asp-action="Index" method="post" enctype="multipart/form-data">
+        @Html.AntiForgeryToken()
+
+        <input type="hidden" name="mode" value="@mode" />
+        @if (isEdit)
+        {
+            <input type="hidden" asp-for="Id" />
+        }
+
         <div asp-validation-summary="All" class="text-danger mb-3"></div>
 
         <div class="mb-3">
@@ -19,7 +29,7 @@
         </div>
 
         <div class="mb-3">
-            <label for="posterImage" class="form-label">Upload New Poster</label>
+            <label for="posterImage" class="form-label">@((isEdit ? "Upload New Poster" : "Upload Poster"))</label>
             <input type="file" class="form-control" id="posterImage" name="posterImage" />
         </div>
 
@@ -55,6 +65,7 @@
         <div class="mb-3">
             <label asp-for="Warning" class="form-label">Warning</label>
             <input asp-for="Warning" class="form-control" />
+            <span asp-validation-for="Warning" class="text-danger"></span>
         </div>
 
         <div class="mb-3">
@@ -107,12 +118,12 @@
         </div>
 
         <div class="mb-3">
-            <label asp-for="RunLength" class="form-label">Run Length (days)</label>
-            <input asp-for="RunLength" class="form-control" type="number" min="0" readonly />
+            <label class="form-label">Run Length (days)</label>
+            <input class="form-control" value="@(Model.RunLength ?? 0)" readonly disabled />
         </div>
 
-        <button type="submit" class="btn btn-success">Save Changes</button>
-        <a asp-action="ManageMovies" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-success">@((isEdit ? "Save Changes" : "Create Movie"))</button>
+        <a asp-action="ManageMovies" asp-controller="Admin" class="btn btn-secondary">Cancel</a>
     </form>
 </div>
 
@@ -125,7 +136,6 @@
         function addShowtime() {
             const day = document.getElementById("daySelector").value;
             const time = document.getElementById("timeInput").value;
-
             if (!time) return;
 
             const entry = `${day}|${time}`;
@@ -152,8 +162,8 @@
             }
         }
 
-        // 🔄 Load existing showtimes from model
-        @if (Model.Showtimes != null)
+        // Preload showtimes if editing
+        @if (isEdit && Model.Showtimes != null)
         {
             foreach (var s in Model.Showtimes.OrderBy(s => s.StartTime))
             {

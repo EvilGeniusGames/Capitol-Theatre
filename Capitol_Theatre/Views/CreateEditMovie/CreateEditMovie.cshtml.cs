@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace Capitol_Theatre.Views.Admin
+namespace Capitol_Theatre.Views.CreateEditMovie
 {
-    public class EditMovieModel : PageModel
+    public class CreateEditMovieModel : PageModel
     {
         public void OnGet()
         {
