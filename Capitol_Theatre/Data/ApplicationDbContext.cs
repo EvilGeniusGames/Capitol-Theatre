@@ -96,6 +96,9 @@ namespace Capitol_Theatre.Data
         public int RatingId { get; set; }
         [BindNever]
         public Rating? Rating { get; set; } = null!;
+
+        public string? Warning { get; set; } = string.Empty;
+        public string? WarningColor { get; set; } = "warning";
         public ICollection<Showtime>? Showtimes { get; set; } = new List<Showtime>();
         public string? TrailerUrl { get; set; }
         public int? runtime { get; set; }

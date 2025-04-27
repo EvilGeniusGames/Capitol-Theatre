@@ -68,6 +68,12 @@ namespace Capitol_Theatre.Migrations
                     b.Property<string>("TrailerUrl")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Warning")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("WarningColor")
+                        .HasColumnType("TEXT");
+
                     b.Property<int?>("runtime")
                         .HasColumnType("INTEGER");
 

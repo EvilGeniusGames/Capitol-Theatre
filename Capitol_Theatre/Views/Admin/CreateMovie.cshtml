@@ -52,6 +52,19 @@
         </div>
 
         <div class="mb-3">
+            <label asp-for="Warning" class="form-label"></label>
+            <input asp-for="Warning" class="form-control" />
+            <span asp-validation-for="Warning" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="WarningColor" class="form-label">Warning Color</label>
+            <input asp-for="WarningColor" class="form-control form-control-color" type="color" />
+            <span asp-validation-for="WarningColor" class="text-danger"></span>
+        </div>
+
+
+        <div class="mb-3">
             <label asp-for="TrailerUrl" class="form-label"></label>
             <input asp-for="TrailerUrl" class="form-control" />
         </div>

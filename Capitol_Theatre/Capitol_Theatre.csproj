@@ -39,7 +39,7 @@
 
   <ItemGroup>
     <Folder Include="Database\" />
-    <Folder Include="Views\Admin\NewFolder\" />
+    <Folder Include="Migrations\" />
     <Folder Include="wwwroot\Images\upload\" />
   </ItemGroup>
 
