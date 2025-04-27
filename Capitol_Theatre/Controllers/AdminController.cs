@@ -241,6 +241,10 @@ public class AdminController : Controller
         movie.StartShowingDate = model.StartShowingDate;
         movie.EndShowingDate = model.EndShowingDate;
 
+        // 🆕 Added bindings
+        movie.Warning = model.Warning;
+        movie.WarningColor = model.WarningColor;
+
         if (model.StartShowingDate.HasValue && model.EndShowingDate.HasValue)
             movie.RunLength = (model.EndShowingDate.Value - model.StartShowingDate.Value).Days;
 
@@ -293,6 +297,7 @@ public class AdminController : Controller
 
         return RedirectToAction("ManageMovies");
     }
+
 
     [Authorize(Roles = "Administrator")]
     [HttpGet]

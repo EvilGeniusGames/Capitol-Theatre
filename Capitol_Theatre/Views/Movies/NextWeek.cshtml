@@ -30,6 +30,10 @@
                     <h5 class="card-title">@movie.Title</h5>
                     <p class="card-text">
                         <strong>Rating:</strong> @movie.Rating?.Code
+                        @if (!string.IsNullOrWhiteSpace(movie.Warning))
+                        {
+                            <span style="color:@movie.WarningColor"> - @movie.Warning</span>
+                        }
                     </p>
                 </div>
             </div>

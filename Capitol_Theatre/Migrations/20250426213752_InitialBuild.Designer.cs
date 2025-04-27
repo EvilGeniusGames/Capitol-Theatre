@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Capitol_Theatre.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250422003129_MakeShowtimesNullable")]
-    partial class MakeShowtimesNullable
+    [Migration("20250426213752_InitialBuild")]
+    partial class InitialBuild
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -69,6 +69,12 @@ namespace Capitol_Theatre.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("TrailerUrl")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Warning")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("WarningColor")
                         .HasColumnType("TEXT");
 
                     b.Property<int?>("runtime")

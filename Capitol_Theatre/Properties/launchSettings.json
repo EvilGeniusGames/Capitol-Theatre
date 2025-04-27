@@ -7,7 +7,7 @@
         "ASPNETCORE_ENVIRONMENT": "Development",
         "EnableAdminSeeding": "true",
         "AdminEmail": "richardcbarnes@gmail.com",
-        "AdminPassword": "j@defalcon016"
+        "AdminPassword": "J@defalcon016"
       },
       "dotnetRunMessages": true,
       "applicationUrl": "http://localhost:5193"

@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Capitol_Theatre.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class InitialBuild : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -213,6 +213,8 @@ namespace Capitol_Theatre.Migrations
                     PosterPath = table.Column<string>(type: "TEXT", nullable: true),
                     Description = table.Column<string>(type: "TEXT", nullable: false),
                     RatingId = table.Column<int>(type: "INTEGER", nullable: false),
+                    Warning = table.Column<string>(type: "TEXT", nullable: true),
+                    WarningColor = table.Column<string>(type: "TEXT", nullable: true),
                     TrailerUrl = table.Column<string>(type: "TEXT", nullable: true),
                     runtime = table.Column<int>(type: "INTEGER", nullable: true),
                     StartShowingDate = table.Column<DateTime>(type: "TEXT", nullable: true),
