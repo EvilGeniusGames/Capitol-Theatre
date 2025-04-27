@@ -15,7 +15,7 @@ namespace Capitol_Theatre.Controllers
 
         public IActionResult Index()
         {
-            return View();
+            return RedirectToAction("Listing", "Movies", new { mode = "NowShowing" });
         }
 
         public IActionResult Privacy()
@@ -34,5 +34,7 @@ namespace Capitol_Theatre.Controllers
         {
             return Redirect("/Identity/Account/Login");
         }
+
+
     }
 }
