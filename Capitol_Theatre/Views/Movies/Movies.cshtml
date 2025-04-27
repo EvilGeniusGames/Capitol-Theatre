@@ -1,11 +1,13 @@
 ﻿@model IEnumerable<Capitol_Theatre.Data.Movie>
 
 @{
-    ViewData["Title"] = "Now Showing";
+    var mode = ViewData["Mode"]?.ToString() ?? "nowshowing";
+    var title = ViewData["Title"]?.ToString() ?? "Movies";
 
     var today = DateTime.Today;
-    var start = today.AddDays(-((int)today.DayOfWeek + 2) % 7); // Most recent Friday
-    var end = start.AddDays(6);
+    var start = today.AddDays(-((int)today.DayOfWeek + 2) % 7); // Previous Friday
+    var end = start.AddDays(6); // Following Thursday
+    var nextFriday = today.AddDays(14 - ((int)today.DayOfWeek + 2) % 7); // Two Fridays ahead
 }
 
 <style>
@@ -39,8 +41,16 @@
 </style>
 
 <div class="container py-4">
-    <h2 class="mb-1">Now Showing</h2>
-    <h5 class="text-muted mb-4">Fri @start.ToString("MMMM d") to Thurs @end.ToString("MMMM d")</h5>
+    <h2 class="mb-1">@title</h2>
+
+    @if (mode.Equals("nowshowing", StringComparison.OrdinalIgnoreCase) || mode.Equals("nextweek", StringComparison.OrdinalIgnoreCase))
+    {
+        <h5 class="text-muted mb-4">Fri @start.ToString("MMMM d") to Thurs @end.ToString("MMMM d")</h5>
+    }
+    else if (mode.Equals("comingsoon", StringComparison.OrdinalIgnoreCase))
+    {
+        <h5 class="text-muted mb-4">After @nextFriday.ToString("MMMM d")</h5>
+    }
 
     <div class="d-flex flex-wrap gap-4 justify-content-start">
         @foreach (var movie in Model)
@@ -51,20 +61,26 @@
                     {
                         <a href="@movie.TrailerUrl" target="_blank">
                             <img src="@movie.PosterPath" class="card-img-top img-fluid" alt="@movie.Title Poster">
-                            <div class="poster-overlay">@movie.Description&#10;&#10;Click to watch the trailer!</div>
+                            @if (!string.IsNullOrWhiteSpace(movie.Description))
+                            {
+                                <div class="poster-overlay">@movie.Description&#10;&#10;Click to watch the trailer!</div>
+                            }
                         </a>
                     }
                     else
                     {
                         <img src="@movie.PosterPath" class="card-img-top img-fluid" alt="@movie.Title Poster">
-                        <div class="poster-overlay">@movie.Description</div>
+                        @if (!string.IsNullOrWhiteSpace(movie.Description))
+                        {
+                            <div class="poster-overlay">@movie.Description</div>
+                        }
                     }
                 </div>
 
                 <div class="card-body">
                     <h5 class="card-title">@movie.Title</h5>
 
-                    @if (movie.Showtimes.Any())
+                    @if (movie.Showtimes != null && movie.Showtimes.Any())
                     {
                         <p class="card-text mb-1 fs-6">
                             @Html.Raw(movie.GetFormattedShowtimes().Replace("\n", "<br/>"))

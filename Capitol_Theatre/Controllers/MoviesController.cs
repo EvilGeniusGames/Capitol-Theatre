@@ -14,54 +14,61 @@ namespace Capitol_Theatre.Controllers
             _context = context;
         }
 
-        public IActionResult NowShowing()
+        [HttpGet("/Movies/Listing/{mode}")]
+        public IActionResult Listing(string mode)
         {
+            if (string.IsNullOrWhiteSpace(mode))
+                return NotFound();
+
             var today = DateTime.Today;
-            int daysToFriday = ((int)DayOfWeek.Friday - (int)today.DayOfWeek + 7) % 7;
-            var start = today.AddDays(-((int)today.DayOfWeek + 2) % 7); // Previous Friday
-            var end = start.AddDays(6); // Following Thursday
+            DateTime? start = null;
+            DateTime? end = null;
+            string title;
 
-            var movies = _context.Movies
+            switch (mode.ToLowerInvariant())
+            {
+                case "nowshowing":
+                    start = today.AddDays(-((int)today.DayOfWeek + 2) % 7); // Previous Friday
+                    end = start.Value.AddDays(6); // Following Thursday
+                    title = "Now Showing";
+                    break;
+
+                case "nextweek":
+                    start = today.AddDays(7 - ((int)today.DayOfWeek + 2) % 7); // Next Friday
+                    end = start.Value.AddDays(6);
+                    title = "Next Week";
+                    break;
+
+                case "comingsoon":
+                    start = today.AddDays(14 - ((int)today.DayOfWeek + 2) % 7); // Two Fridays ahead
+                    title = "Coming Soon";
+                    break;
+
+                default:
+                    return NotFound();
+            }
+
+            IQueryable<Movie> query = _context.Movies
                 .Include(m => m.Rating)
-                .Include(m => m.Showtimes)
-                .Where(m =>
-                    (!m.StartShowingDate.HasValue || m.StartShowingDate.Value <= end) &&
-                    (!m.EndShowingDate.HasValue || m.EndShowingDate.Value >= start))
-                .ToList();
+                .Include(m => m.Showtimes);
 
-            return View(movies);
-        }
-
-        public IActionResult NextWeek()
-        {
-            var today = DateTime.Today;
-            var start = today.AddDays(7 - ((int)today.DayOfWeek + 2) % 7); // Next Friday
-            var end = start.AddDays(6);
-
-            var movies = _context.Movies
-                .Include(m => m.Rating)
-                .Include(m => m.Showtimes)
-                .Where(m =>
+            if (mode.Equals("comingsoon", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(m => m.StartShowingDate.HasValue && m.StartShowingDate > start);
+            }
+            else
+            {
+                query = query.Where(m =>
                     (!m.StartShowingDate.HasValue || m.StartShowingDate <= end) &&
-                    (!m.EndShowingDate.HasValue || m.EndShowingDate >= start))
-                .ToList();
+                    (!m.EndShowingDate.HasValue || m.EndShowingDate >= start));
+            }
 
-            return View(movies);
-        }
+            var movies = query.ToList();
 
+            ViewData["Title"] = title;
+            ViewData["Mode"] = mode;
 
-        public IActionResult ComingSoon()
-        {
-            var today = DateTime.Today;
-            var nextFriday = today.AddDays(14 - ((int)today.DayOfWeek + 2) % 7);
-
-            var movies = _context.Movies
-                .Include(m => m.Rating)
-                .Include(m => m.Showtimes)
-                .Where(m => m.StartShowingDate.HasValue && m.StartShowingDate > nextFriday)
-                .ToList();
-
-            return View(movies);
+            return View("Movies", movies);
         }
     }
 }

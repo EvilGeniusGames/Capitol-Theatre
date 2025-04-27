@@ -86,7 +86,7 @@ public class Program
 
         app.MapControllerRoute(
             name: "default",
-            pattern: "{controller=Movies}/{action=NowShowing}/{id?}");
+            pattern: "{controller=Home}/{action=Index}/{id?}");
 
         app.MapRazorPages();
 
