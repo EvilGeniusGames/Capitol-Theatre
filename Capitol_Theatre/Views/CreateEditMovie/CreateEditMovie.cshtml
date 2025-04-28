@@ -11,7 +11,7 @@
 <h2 class="my-4">@((isEdit ? "✏️ Edit Movie" : "➕ Add New Movie"))</h2>
 
 <div class="card bg-light p-4">
-    <form asp-action="Index" method="post" enctype="multipart/form-data">
+    <form asp-action="Index" method="post">
         @Html.AntiForgeryToken()
 
         <input type="hidden" name="mode" value="@mode" />
@@ -29,26 +29,28 @@
         </div>
 
         <div class="mb-3">
-            <label for="posterImage" class="form-label">@((isEdit ? "Upload New Poster" : "Upload Poster"))</label>
-            <input type="file" class="form-control" id="posterImage" name="posterImage" />
+            <label class="form-label">@((isEdit ? "Upload New Poster" : "Upload Poster"))</label>
+            <input type="file" id="posterImage" class="form-control" />
+
+            <input type="hidden" asp-for="PosterPath" id="PosterPath" />
+
+            <img id="posterPreview" src="@Model.PosterPath" alt="Poster Preview" style="display:@(string.IsNullOrEmpty(Model.PosterPath) ? "none" : "block"); max-height:200px; margin-top:10px;" />
         </div>
 
-        <div class="mb-3">
-            <label asp-for="PosterPath" class="form-label">Or select existing</label>
-            <select asp-for="PosterPath" class="form-select">
-                <option value="">-- Choose existing poster --</option>
-                @if (ViewBag.Posters is List<string> posters)
-                {
-                    foreach (var path in posters)
+        @if (ViewBag.Posters is List<string> posters && posters.Count > 0)
+        {
+            <div class="mb-3">
+                <label class="form-label">Or Choose Existing Poster</label>
+                <div class="row">
+                    @foreach (var path in posters)
                     {
-                        <option value="@path" selected="@(Model.PosterPath == path)">
-                            @System.IO.Path.GetFileName(path)
-                        </option>
+                        <div class="col-md-3 mb-3">
+                            <img src="@path" class="img-thumbnail" style="cursor:pointer;" onclick="selectPoster('@path')" />
+                        </div>
                     }
-                }
-            </select>
-            <span asp-validation-for="PosterPath" class="text-danger"></span>
-        </div>
+                </div>
+            </div>
+        }
 
         <div class="mb-3">
             <label asp-for="Description" class="form-label"></label>
@@ -130,7 +132,17 @@
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
 
+    <script src="/js/uploadHelper.js"></script>
     <script>
+        setupUploader('posterImage', 'PosterPath', 'posterPreview');
+
+        function selectPoster(path) {
+            document.getElementById('PosterPath').value = path;
+            const preview = document.getElementById('posterPreview');
+            preview.src = path;
+            preview.style.display = 'block';
+        }
+
         const showtimes = [];
 
         function addShowtime() {
@@ -162,7 +174,6 @@
             }
         }
 
-        // Preload showtimes if editing
         @if (isEdit && Model.Showtimes != null)
         {
             foreach (var s in Model.Showtimes.OrderBy(s => s.StartTime))

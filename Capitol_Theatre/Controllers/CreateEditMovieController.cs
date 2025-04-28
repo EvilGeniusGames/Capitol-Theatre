@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Capitol_Theatre.Data;
+using Capitol_Theatre.Utilities;
 using System;
 using System.IO;
 using System.Linq;
@@ -41,47 +42,39 @@ namespace Capitol_Theatre.Controllers
 
             ViewBag.Mode = mode;
             ViewBag.Ratings = new SelectList(_context.Ratings, "Id", "Code", model.RatingId);
-            var posterDir = Path.Combine("wwwroot", "images", "posters");
+
+            var posterDir = Path.Combine("wwwroot", "Images", "posters");
             ViewBag.Posters = Directory.Exists(posterDir)
-                ? Directory.GetFiles(posterDir).Select(p => "/images/posters/" + Path.GetFileName(p)).ToList()
+                ? Directory.GetFiles(posterDir).Select(p => "/Images/posters/" + Path.GetFileName(p)).ToList()
                 : new List<string>();
 
             return View("CreateEditMovie", model);
         }
 
         [HttpPost]
-        public async Task<IActionResult> Index(string mode, Movie model, IFormFile posterImage, string? ShowtimeEntries)
+        [Authorize(Roles = "Administrator")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Index(string mode, Movie model, string? ShowtimeEntries)
         {
             if (string.IsNullOrEmpty(mode) || !(mode.Equals("Create", StringComparison.OrdinalIgnoreCase) || mode.Equals("Edit", StringComparison.OrdinalIgnoreCase)))
                 return BadRequest("Invalid mode.");
 
-            ModelState.Remove(nameof(posterImage));
             ModelState.Remove(nameof(ShowtimeEntries));
 
-            if (posterImage != null && posterImage.Length > 0)
-            {
-                var folderPath = Path.Combine("wwwroot", "images", "posters");
-                Directory.CreateDirectory(folderPath);
-
-                var fileName = $"{Guid.NewGuid()}_{Path.GetFileName(posterImage.FileName)}";
-                var filePath = Path.Combine(folderPath, fileName);
-
-                using var stream = new FileStream(filePath, FileMode.Create);
-                await posterImage.CopyToAsync(stream);
-
-                model.PosterPath = "/images/posters/" + fileName;
-            }
-
+            // Poster is already uploaded separately by JavaScript, just verify PosterPath
             if (string.IsNullOrWhiteSpace(model.PosterPath))
+            {
                 ModelState.AddModelError("PosterPath", "Please upload or select a poster image.");
+            }
 
             if (!ModelState.IsValid)
             {
                 ViewBag.Mode = mode;
                 ViewBag.Ratings = new SelectList(_context.Ratings, "Id", "Code", model.RatingId);
-                var posterDir = Path.Combine("wwwroot", "images", "posters");
+
+                var posterDir = Path.Combine("wwwroot", "Images", "posters");
                 ViewBag.Posters = Directory.Exists(posterDir)
-                    ? Directory.GetFiles(posterDir).Select(p => "/images/posters/" + Path.GetFileName(p)).ToList()
+                    ? Directory.GetFiles(posterDir).Select(p => "/Images/posters/" + Path.GetFileName(p)).ToList()
                     : new List<string>();
 
                 return View("CreateEditMovie", model);
@@ -167,7 +160,6 @@ namespace Capitol_Theatre.Controllers
             return RedirectToAction("ManageMovies", "Admin");
         }
 
-
         [Authorize(Roles = "Administrator")]
         [HttpPost("admin/CreateEditMovie/DeleteMovieConfirmed")]
         [ValidateAntiForgeryToken]
@@ -181,7 +173,5 @@ namespace Capitol_Theatre.Controllers
 
             return RedirectToAction("ManageMovies", "Admin");
         }
-
-
     }
 }

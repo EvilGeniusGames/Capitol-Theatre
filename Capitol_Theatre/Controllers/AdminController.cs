@@ -1,5 +1,6 @@
 ﻿using Capitol_Theatre.Data;
 using Capitol_Theatre.Models;
+using Capitol_Theatre.Utilities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -38,34 +39,41 @@ public class AdminController : Controller
     [Authorize(Roles = "Administrator")]
     public async Task<IActionResult> UploadImage(IFormFile image)
     {
-        try
+        if (image == null || image.Length == 0)
+            return BadRequest("No image uploaded.");
+
+        // Step 1: Save to temp folder first
+        var tempFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "Images", "upload");
+        Directory.CreateDirectory(tempFolder);
+
+        var fileName = Path.GetFileName(image.FileName);
+        var tempPath = Path.Combine(tempFolder, fileName);
+
+        using (var stream = new FileStream(tempPath, FileMode.Create))
         {
-            if (image == null || image.Length == 0)
-                return BadRequest("No image uploaded.");
-
-            var uploadFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "upload");
-            Directory.CreateDirectory(uploadFolder);
-
-            var fileName = Path.GetFileName(image.FileName);
-            var uniqueFileName = $"{Guid.NewGuid()}_{fileName}";
-            var filePath = Path.Combine(uploadFolder, uniqueFileName);
-
-            using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await image.CopyToAsync(stream);
-            }
-
-            var imageUrl = $"/images/upload/{uniqueFileName}";
-            Console.WriteLine("Returning JSON for image: " + imageUrl);
-
-            return Json(new { location = imageUrl });
+            await image.CopyToAsync(stream);
         }
-        catch (Exception ex)
+
+        // Step 2: Move to posters folder
+        var postersFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "Images", "posters");
+        Directory.CreateDirectory(postersFolder);
+
+        var finalPath = Path.Combine(postersFolder, fileName);
+
+        if (System.IO.File.Exists(finalPath))
         {
-            Console.WriteLine("UploadImage error: " + ex.Message);
-            return StatusCode(500, "Internal error: " + ex.Message);
+            // Optional: Overwrite or add GUID logic if you want
+            System.IO.File.Delete(finalPath);
         }
+
+        System.IO.File.Move(tempPath, finalPath);
+
+        // Step 3: Return correct posters path to frontend
+        var publicPath = $"/Images/posters/{fileName}";
+
+        return Json(new { location = publicPath });
     }
+
 
     [HttpGet]
     [Authorize(Roles = "Administrator")]
@@ -346,6 +354,129 @@ public class AdminController : Controller
 
         return View(model); // In case of creation failure
     }
+    // GET: Admin/ManageSiteSettings
+    [HttpGet]
+    [Authorize(Roles = "Administrator")]
+    public async Task<IActionResult> ManageSiteSettings()
+        {
+            var settings = await _context.SiteSettings.FirstOrDefaultAsync();
+            if (settings == null)
+            {
+                settings = new SiteSettings();
+            }
+            return View(settings);
+        }
+
+    // POST: Admin/ManageSiteSettings
+    [HttpPost]
+    [Authorize(Roles = "Administrator")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ManageSiteSettings(IFormFile? IconFile, IFormFile? BackgroundFile, string? IconUrl, string? BackgroundImageUrl, string BackgroundImageAlignment, bool BackgroundImageTiled, string BackgroundColor, string FontColor)
+    {
+        var existing = await _context.SiteSettings.FirstOrDefaultAsync();
+        if (existing == null)
+        {
+            return NotFound();
+        }
+
+        // Upload new Icon if provided
+        if (IconFile != null && IconFile.Length > 0)
+        {
+            var uploadedIconPath = await UploadHelper.UploadAndMoveAsync(IconFile, "icons");
+            if (!string.IsNullOrEmpty(uploadedIconPath))
+            {
+                existing.IconUrl = uploadedIconPath;
+            }
+        }
+        else if (!string.IsNullOrEmpty(IconUrl))
+        {
+            existing.IconUrl = IconUrl;
+        }
+
+        // Upload new Background if provided
+        if (BackgroundFile != null && BackgroundFile.Length > 0)
+        {
+            var uploadedBackgroundPath = await UploadHelper.UploadAndMoveAsync(BackgroundFile, "backgrounds");
+            if (!string.IsNullOrEmpty(uploadedBackgroundPath))
+            {
+                existing.BackgroundImageUrl = uploadedBackgroundPath;
+            }
+        }
+        else if (!string.IsNullOrEmpty(BackgroundImageUrl))
+        {
+            existing.BackgroundImageUrl = BackgroundImageUrl;
+        }
+
+        // Update other settings
+        existing.BackgroundImageAlignment = BackgroundImageAlignment;
+        existing.BackgroundImageTiled = BackgroundImageTiled;
+        existing.BackgroundColor = BackgroundColor;
+        existing.FontColor = FontColor;
+        existing.LastUpdated = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        return RedirectToAction(nameof(ManageSiteSettings));
+    }
+
+
+
+    // GET: Admin/AddSocialLink
+    [HttpGet]
+    [Authorize(Roles = "Administrator")]
+    public IActionResult AddSocialLink()
+    {
+        ViewBag.SocialMediaTypes = new SelectList(_context.SocialMediaTypes.OrderBy(x => x.Name), "Id", "Name");
+        return View(new SocialMediaLink());
+    }
+
+    // POST: Admin/AddSocialLink
+    [HttpPost]
+    [Authorize(Roles = "Administrator")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AddSocialLink(SocialMediaLink model)
+    {
+        if (ModelState.IsValid)
+        {
+            _context.SocialMediaLinks.Add(model);
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(ManageSiteSettings));
+        }
+
+        ViewBag.SocialMediaTypes = new SelectList(_context.SocialMediaTypes.OrderBy(x => x.Name), "Id", "Name", model.SocialMediaTypeId);
+        return View(model);
+    }
+
+    [HttpGet]
+    [Authorize(Roles = "Administrator")]
+    public IActionResult BrowseImages(string field)
+    {
+        string subfolder = field switch
+        {
+            "IconUrl" => "icons",
+            "BackgroundImageUrl" => "backgrounds",
+            _ => "misc"
+        };
+
+        var imageFolderPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "Images", subfolder);
+
+        // Ensure the Images folder and subfolder exist
+        if (!Directory.Exists(imageFolderPath))
+        {
+            Directory.CreateDirectory(imageFolderPath);
+        }
+
+        var images = Directory.GetFiles(imageFolderPath)
+            .Select(file => $"/Images/{subfolder}/" + Path.GetFileName(file))
+            .ToList();
+
+        ViewBag.Field = field;
+        ViewBag.Images = images;
+
+        return View();
+    }
+
+
 
 
 }

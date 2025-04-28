@@ -72,3 +72,6 @@ ehthumbs.db
 /SiteData/
 .env
 docker-compose.override.yml
+
+# Ignore temporary uploaded files
+/App_Data/TempUploads/

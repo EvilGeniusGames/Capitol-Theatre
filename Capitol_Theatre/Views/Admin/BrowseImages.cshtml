@@ -1,0 +1,47 @@
+﻿@{
+    ViewData["Title"] = "Browse Images";
+    var field = ViewBag.Field as string;
+    var images = ViewBag.Images as List<string>;
+}
+
+<div class="container mt-4">
+    <h2 class="mb-4">🖼️ Select an Image</h2>
+
+    @if (images != null && images.Any())
+    {
+        <div class="row">
+            @foreach (var image in images)
+            {
+                <div class="col-md-3 mb-4">
+                    <div class="card h-100 shadow-sm rounded-2xl">
+                        <img src="@image" class="card-img-top" style="height: 150px; object-fit: cover;" />
+                        <div class="card-body text-center">
+                            <button type="button" class="btn btn-primary btn-sm" onclick="selectImage('@image')">Select</button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info">
+            No images available in this category.
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        function selectImage(imageUrl) {
+            if (window.opener && !window.opener.closed) {
+                const field = '@field';
+                const input = window.opener.document.querySelector('input[name="' + field + '"]');
+                if (input) {
+                    input.value = imageUrl;
+                }
+                window.close();
+            }
+        }
+    </script>
+}
