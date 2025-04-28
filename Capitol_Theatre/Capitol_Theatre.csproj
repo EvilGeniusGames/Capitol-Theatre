@@ -40,6 +40,9 @@
   <ItemGroup>
     <Folder Include="Database\" />
     <Folder Include="Migrations\" />
+    <Folder Include="wwwroot\Images\backgrounds\" />
+    <Folder Include="wwwroot\Images\icons\" />
+    <Folder Include="wwwroot\Images\posters\" />
     <Folder Include="wwwroot\Images\upload\" />
   </ItemGroup>
 

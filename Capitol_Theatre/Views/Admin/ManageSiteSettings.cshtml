@@ -1,0 +1,131 @@
+﻿@model Capitol_Theatre.Data.SiteSettings
+
+@{
+    ViewData["Title"] = "Manage Site Settings";
+    var socialMediaLinks = ViewBag.SocialMediaLinks as List<Capitol_Theatre.Data.SocialMediaLink>;
+}
+
+<div class="container mt-4">
+    <h2 class="mb-4">⚙️ Manage Site Settings</h2>
+
+    <div class="card shadow rounded-2xl p-4">
+        <form asp-action="ManageSiteSettings" method="post" enctype="multipart/form-data">
+            @Html.AntiForgeryToken()
+
+            <div class="mb-3">
+                <label class="form-label">Site Icon</label>
+
+                <label class="form-label mt-2">Upload New Icon</label>
+                <input type="file" name="IconFile" class="form-control" />
+
+                <div class="mt-2">
+                    <a asp-action="BrowseImages" asp-route-field="IconUrl" class="btn btn-secondary btn-sm">Browse Existing Icons</a>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Background Image</label>
+
+                <label class="form-label mt-2">Upload New Background Image</label>
+                <input type="file" name="BackgroundFile" class="form-control" />
+
+                <div class="mt-2">
+                    <a asp-action="BrowseImages" asp-route-field="BackgroundImageUrl" class="btn btn-secondary btn-sm">Browse Existing Backgrounds</a>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="BackgroundImageAlignment" class="form-label">Background Image Alignment</label>
+                <select asp-for="BackgroundImageAlignment" class="form-select">
+                    <option value="left">Left</option>
+                    <option value="center">Center</option>
+                    <option value="right">Right</option>
+                    <option value="top-left">Top Left</option>
+                    <option value="top-center">Top Center</option>
+                    <option value="top-right">Top Right</option>
+                    <option value="bottom-left">Bottom Left</option>
+                    <option value="bottom-center">Bottom Center</option>
+                    <option value="bottom-right">Bottom Right</option>
+                </select>
+                <span asp-validation-for="BackgroundImageAlignment" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3 form-check">
+                <input asp-for="BackgroundImageTiled" class="form-check-input" />
+                <label asp-for="BackgroundImageTiled" class="form-check-label">Tile Background Image</label>
+                <span asp-validation-for="BackgroundImageTiled" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="BackgroundColor" class="form-label">Background Color</label>
+                <input asp-for="BackgroundColor" type="color" class="form-control form-control-color" />
+                <span asp-validation-for="BackgroundColor" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="FontColor" class="form-label">Font Color</label>
+                <input asp-for="FontColor" type="color" class="form-control form-control-color" />
+                <span asp-validation-for="FontColor" class="text-danger"></span>
+            </div>
+
+            <input type="hidden" name="IconUrl" value="@Model.IconUrl" />
+            <input type="hidden" name="BackgroundImageUrl" value="@Model.BackgroundImageUrl" />
+
+            <button type="submit" class="btn btn-primary">Save Settings</button>
+        </form>
+    </div>
+
+    <hr class="my-5" />
+
+    <h3>🔗 Manage Social Media Links</h3>
+
+    <div class="card shadow rounded-2xl p-4 mt-3">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Platform</th>
+                    <th>URL</th>
+                    <th>Icon Color</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (socialMediaLinks != null && socialMediaLinks.Any())
+                {
+                    foreach (var link in socialMediaLinks)
+                    {
+                        <tr>
+                            <td>@link.SocialMediaType?.Name</td>
+                            <td><a href="@link.Url" target="_blank">@link.Url</a></td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(link.IconColor))
+                                {
+                                    <span style="display:inline-block; width:20px; height:20px; background-color:@link.IconColor; border:1px solid #ccc;"></span>
+                                }
+                            </td>
+                            <td>
+                                <a asp-action="EditSocialLink" asp-route-id="@link.Id" class="btn btn-sm btn-warning">Edit</a>
+                                <a asp-action="DeleteSocialLink" asp-route-id="@link.Id" class="btn btn-sm btn-danger">Delete</a>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="4" class="text-center">No social media links configured.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <div class="mt-3">
+            <a asp-action="AddSocialLink" class="btn btn-success">➕ Add New Social Media Link</a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+}
+

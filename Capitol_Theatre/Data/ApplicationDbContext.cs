@@ -21,6 +21,11 @@ namespace Capitol_Theatre.Data
         public DbSet<Notice> Notices { get; set; }
         public DbSet<Rating> Ratings { get; set; }
         public DbSet<PageContent> PageContents { get; set; }
+        public DbSet<SiteSettings> SiteSettings { get; set; }
+        public DbSet<SocialMediaLink> SocialMediaLinks { get; set; }
+        public DbSet<SocialMediaType> SocialMediaTypes { get; set; } = null!;
+
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -81,6 +86,31 @@ namespace Capitol_Theatre.Data
                 new Rating { Id = 3, Code = "14A", Description = "Suitable for viewing by persons 14 years of age or older. Persons under 14 must be accompanied by an adult. May contain violence, coarse language, and/or sexually suggestive scenes." },
                 new Rating { Id = 4, Code = "18A", Description = "Suitable for viewing by persons 18 years of age or older. Persons 14 - 17 must be accompanied by an adult. No Admittance to persons under 14. May contain explicit violence, frequent coarse language, sexual activity and/or horror." },
                 new Rating { Id = 5, Code = "R", Description = "Admittance restricted to persons 18 and older. Content not suitable for minors. Contains frequent sexual activity, brutal/graphic violence, intense horror and/or disturbing content." }
+            );
+
+            modelBuilder.Entity<SocialMediaType>().HasData(
+                new SocialMediaType { Id = 1, Name = "Facebook", FontAwesomeClass = "fab fa-facebook" },
+                new SocialMediaType { Id = 2, Name = "Instagram", FontAwesomeClass = "fab fa-instagram" },
+                new SocialMediaType { Id = 3, Name = "YouTube", FontAwesomeClass = "fab fa-youtube" },
+                new SocialMediaType { Id = 4, Name = "Twitter", FontAwesomeClass = "fab fa-x-twitter" },
+                new SocialMediaType { Id = 5, Name = "LinkedIn", FontAwesomeClass = "fab fa-linkedin" },
+                new SocialMediaType { Id = 6, Name = "TikTok", FontAwesomeClass = "fab fa-tiktok" },
+                new SocialMediaType { Id = 7, Name = "Pinterest", FontAwesomeClass = "fab fa-pinterest" },
+                new SocialMediaType { Id = 8, Name = "Bluesky", FontAwesomeClass = "fas fa-globe" }
+            );
+
+            modelBuilder.Entity<SiteSettings>().HasData(
+                new SiteSettings
+                {
+                    Id = 1,
+                    IconUrl = "", // Empty at start
+                    BackgroundImageUrl = "", // No background image initially
+                    BackgroundImageAlignment = "left", // Default to left (matches your config)
+                    BackgroundImageTiled = false, // Default to no tiling
+                    BackgroundColor = "#ffffff", // White background
+                    FontColor = "#000000", // Black text
+                    LastUpdated = new DateTime(2024, 01, 01, 0, 0, 0, DateTimeKind.Utc)
+                }
             );
         }
     }
@@ -228,5 +258,38 @@ namespace Capitol_Theatre.Data
         public string PageKey { get; set; } = string.Empty;
         public string HtmlContent { get; set; } = string.Empty;
         public DateTime LastUpdated { get; set; }
+    }
+
+    public class SocialMediaType
+    {
+        public int Id { get; set; } // Primary Key
+        public string Name { get; set; } = "";
+        // Example: "Facebook", "Instagram", "YouTube"
+        public string FontAwesomeClass { get; set; } = "";
+        // Example: "fab fa-facebook", "fab fa-instagram"
+    }
+
+    public class SiteSettings
+    {
+        public int Id { get; set; }
+        // Logo
+        public string IconUrl { get; set; } = "";
+        // Background Settings
+        public string BackgroundImageUrl { get; set; } = "";
+        public string BackgroundImageAlignment { get; set; } = "left"; // center, left, right, top-left, top-center, etc.
+        public bool BackgroundImageTiled { get; set; } = false;
+        // Colors
+        public string BackgroundColor { get; set; } = "#ffffff"; // default white
+        public string FontColor { get; set; } = "#000000";        // default black
+        // Timestamp
+        public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
+    }
+    public class SocialMediaLink
+    {
+        public int Id { get; set; }
+        public int SocialMediaTypeId { get; set; } // FK to lookup table
+        public SocialMediaType? SocialMediaType { get; set; }
+        public string Url { get; set; } = "";       // User-supplied link
+        public string IconColor { get; set; } = ""; // Optional, e.g., "#4285F4", "red"
     }
 }
