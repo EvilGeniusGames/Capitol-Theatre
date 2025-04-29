@@ -42,4 +42,5 @@ function setupUploader(fileInputId, hiddenInputId, previewImageId = null, upload
             alert('Image upload failed.');
         }
     });
+
 }

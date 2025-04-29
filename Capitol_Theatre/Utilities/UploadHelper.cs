@@ -6,11 +6,11 @@ namespace Capitol_Theatre.Utilities
 {
     public static class UploadHelper
     {
-        private static readonly string TempUploadFolder = Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "TempUploads");
+        private static readonly string TempUploadFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "temp");
 
         static UploadHelper()
         {
-            // Ensure TempUploads exists
+            // Ensure temp folder exists at startup
             if (!Directory.Exists(TempUploadFolder))
             {
                 Directory.CreateDirectory(TempUploadFolder);
@@ -24,25 +24,30 @@ namespace Capitol_Theatre.Utilities
 
             var fileName = Path.GetFileName(file.FileName);
 
-            // Save to temp first
+            // Ensure temp folder exists
+            if (!Directory.Exists(TempUploadFolder))
+                Directory.CreateDirectory(TempUploadFolder);
+
             var tempPath = Path.Combine(TempUploadFolder, fileName);
             using (var stream = new FileStream(tempPath, FileMode.Create))
             {
                 await file.CopyToAsync(stream);
             }
 
-            // Now move to final folder
-            var finalFolderPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "Images", finalSubfolder);
+            // Ensure final folder exists
+            var finalFolderPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", finalSubfolder);
             if (!Directory.Exists(finalFolderPath))
             {
                 Directory.CreateDirectory(finalFolderPath);
             }
 
             var finalFilePath = Path.Combine(finalFolderPath, fileName);
+
+            // Move file to final location
             File.Move(tempPath, finalFilePath, overwrite: true);
 
-            // Return relative path for database
-            return $"/Images/{finalSubfolder}/{fileName}";
+            // Return relative path with lowercase "images" to match URL convention
+            return $"/images/{finalSubfolder}/{fileName}";
         }
     }
 }

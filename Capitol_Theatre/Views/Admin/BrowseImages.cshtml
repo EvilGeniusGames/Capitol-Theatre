@@ -1,47 +1,109 @@
 ﻿@{
-    ViewData["Title"] = "Browse Images";
-    var field = ViewBag.Field as string;
-    var images = ViewBag.Images as List<string>;
+    Layout = null;
+    var images = ViewBag.Images as List<string> ?? new List<string>();
+    var target = ViewBag.Target as string ?? "";
 }
 
-<div class="container mt-4">
-    <h2 class="mb-4">🖼️ Select an Image</h2>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Select Image</title>
+    <link href="~/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        .image-card {
+            width: 80px;
+            cursor: pointer;
+            padding: 2px;
+        }
 
-    @if (images != null && images.Any())
-    {
-        <div class="row">
-            @foreach (var image in images)
-            {
-                <div class="col-md-3 mb-4">
-                    <div class="card h-100 shadow-sm rounded-2xl">
-                        <img src="@image" class="card-img-top" style="height: 150px; object-fit: cover;" />
-                        <div class="card-body text-center">
-                            <button type="button" class="btn btn-primary btn-sm" onclick="selectImage('@image')">Select</button>
-                        </div>
-                    </div>
-                </div>
+            .image-card img {
+                height: 100px;
+                object-fit: cover;
+                border-radius: 4px;
             }
-        </div>
-    }
-    else
-    {
-        <div class="alert alert-info">
-            No images available in this category.
-        </div>
-    }
-</div>
 
-@section Scripts {
+            .image-card:hover {
+                box-shadow: 0 0 0 2px #0d6efd;
+                transform: scale(1.05);
+                transition: all 0.15s ease-in-out;
+            }
+
+        .image-col {
+            padding: 2px !important;
+        }
+
+
+    </style>
+</head>
+<body class="p-2">
+
+    <h6>Select an Image</h6>
+
+    <div class="row gx-1 gy-1">
+        @foreach (var img in images)
+        {
+            <div class="col-3 col-sm-2 col-md-1 image-col d-flex justify-content-center">
+                <div class="card shadow-sm image-card" onclick="chooseImage('@img')">
+                    <img src="@img" class="card-img-top" alt="Image" />
+                </div>
+            </div>
+        }
+    </div>
+
+    <hr class="my-3" />
+
+    <h6>Upload New Image</h6>
+
+    <form id="uploadForm" enctype="multipart/form-data" method="post">
+        <div class="mb-2">
+            <input class="form-control form-control-sm" type="file" id="newImage" name="image" accept="image/*">
+        </div>
+        <button type="button" class="btn btn-sm btn-primary" onclick="uploadNewImage()">Upload</button>
+    </form>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
     <script>
-        function selectImage(imageUrl) {
-            if (window.opener && !window.opener.closed) {
-                const field = '@field';
-                const input = window.opener.document.querySelector('input[name="' + field + '"]');
-                if (input) {
-                    input.value = imageUrl;
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetInputId = urlParams.get('target') || '';
+
+        function chooseImage(path) {
+            if (window.parent && window.parent.selectImage) {
+                window.parent.selectImage(path, targetInputId);
+            }
+        }
+
+        async function uploadNewImage() {
+            const fileInput = document.getElementById('newImage');
+            if (!fileInput.files.length) {
+                alert('Please select a file.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('image', fileInput.files[0]);
+            formData.append('folder', '@ViewBag.Folder');
+
+            try {
+                const response = await fetch('/Admin/UploadImage', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) throw new Error('Upload failed.');
+
+                const result = await response.json();
+                if (result.location) {
+                    chooseImage(result.location);
                 }
-                window.close();
+            } catch (error) {
+                console.error('Upload error:', error);
+                alert('Upload failed.');
             }
         }
     </script>
-}
+
+</body>
+</html>

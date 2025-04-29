@@ -21,7 +21,7 @@
         }
 
         <div asp-validation-summary="All" class="text-danger mb-3"></div>
-
+        
         <div class="mb-3">
             <label asp-for="Title" class="form-label"></label>
             <input asp-for="Title" class="form-control" />
@@ -29,28 +29,27 @@
         </div>
 
         <div class="mb-3">
-            <label class="form-label">@((isEdit ? "Upload New Poster" : "Upload Poster"))</label>
-            <input type="file" id="posterImage" class="form-control" />
+            <label class="form-label">Poster Image</label>
+
+            @* Display current poster file name, with ID for dynamic updates *@
+            <div id="posterSelectedFilename" class="mb-2 text-muted small" style="display:@(string.IsNullOrEmpty(Model.PosterPath) ? "none" : "block")">
+                <strong>Selected:</strong> @System.IO.Path.GetFileName(Model.PosterPath)
+            </div>
+
+            <img id="PosterPathPreview" src="@Model.PosterPath"
+                 alt="Poster Preview"
+                 style="display:@(string.IsNullOrEmpty(Model.PosterPath) ? "none" : "block");
+                max-height:200px; margin-bottom:10px;"
+                 class="img-thumbnail" />
 
             <input type="hidden" asp-for="PosterPath" id="PosterPath" />
 
-            <img id="posterPreview" src="@Model.PosterPath" alt="Poster Preview" style="display:@(string.IsNullOrEmpty(Model.PosterPath) ? "none" : "block"); max-height:200px; margin-top:10px;" />
+            <button type="button" class="btn btn-primary"
+                    onclick="openImageSelector('PosterPath', 'posters')">
+                Upload or Choose Poster
+            </button>
         </div>
 
-        @if (ViewBag.Posters is List<string> posters && posters.Count > 0)
-        {
-            <div class="mb-3">
-                <label class="form-label">Or Choose Existing Poster</label>
-                <div class="row">
-                    @foreach (var path in posters)
-                    {
-                        <div class="col-md-3 mb-3">
-                            <img src="@path" class="img-thumbnail" style="cursor:pointer;" onclick="selectPoster('@path')" />
-                        </div>
-                    }
-                </div>
-            </div>
-        }
 
         <div class="mb-3">
             <label asp-for="Description" class="form-label"></label>
@@ -65,7 +64,7 @@
         </div>
 
         <div class="mb-3">
-            <label asp-for="Warning" class="form-label">Warning</label>
+            <label asp-for="Warning" class="form-label"></label>
             <input asp-for="Warning" class="form-control" />
             <span asp-validation-for="Warning" class="text-danger"></span>
         </div>
@@ -131,19 +130,15 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script src="/js/uploadModalHelper.js"></script>
 
-    <script src="/js/uploadHelper.js"></script>
     <script>
-        setupUploader('posterImage', 'PosterPath', 'posterPreview');
-
         function selectPoster(path) {
             document.getElementById('PosterPath').value = path;
             const preview = document.getElementById('posterPreview');
             preview.src = path;
             preview.style.display = 'block';
         }
-
-        const showtimes = [];
 
         function addShowtime() {
             const day = document.getElementById("daySelector").value;
@@ -173,6 +168,8 @@
                 button.closest("li").remove();
             }
         }
+
+        const showtimes = [];
 
         @if (isEdit && Model.Showtimes != null)
         {
