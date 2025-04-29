@@ -89,15 +89,16 @@ namespace Capitol_Theatre.Data
             );
 
             modelBuilder.Entity<SocialMediaType>().HasData(
-                new SocialMediaType { Id = 1, Name = "Facebook", FontAwesomeClass = "fab fa-facebook" },
-                new SocialMediaType { Id = 2, Name = "Instagram", FontAwesomeClass = "fab fa-instagram" },
-                new SocialMediaType { Id = 3, Name = "YouTube", FontAwesomeClass = "fab fa-youtube" },
-                new SocialMediaType { Id = 4, Name = "Twitter", FontAwesomeClass = "fab fa-x-twitter" },
-                new SocialMediaType { Id = 5, Name = "LinkedIn", FontAwesomeClass = "fab fa-linkedin" },
-                new SocialMediaType { Id = 6, Name = "TikTok", FontAwesomeClass = "fab fa-tiktok" },
-                new SocialMediaType { Id = 7, Name = "Pinterest", FontAwesomeClass = "fab fa-pinterest" },
-                new SocialMediaType { Id = 8, Name = "Bluesky", FontAwesomeClass = "fas fa-globe" }
+                new SocialMediaType { Id = 1, Name = "Facebook", FontAwesomeClass = "fab fa-facebook-square" }, // ✅ has square
+                new SocialMediaType { Id = 2, Name = "Instagram", FontAwesomeClass = "fab fa-instagram" },       // ❌ no square
+                new SocialMediaType { Id = 3, Name = "YouTube", FontAwesomeClass = "fab fa-youtube-square" },    // ✅ has square
+                new SocialMediaType { Id = 4, Name = "Twitter/X", FontAwesomeClass = "fab fa-twitter-square" },    // ✅ has square (replace x-twitter)
+                new SocialMediaType { Id = 5, Name = "LinkedIn", FontAwesomeClass = "fab fa-linkedin" },          // ❌ square deprecated
+                new SocialMediaType { Id = 6, Name = "TikTok", FontAwesomeClass = "fab fa-tiktok" },              // ❌ no square in FA6
+                new SocialMediaType { Id = 7, Name = "Pinterest", FontAwesomeClass = "fab fa-pinterest-square" },// ✅ has square
+                new SocialMediaType { Id = 8, Name = "Bluesky", FontAwesomeClass = "fas fa-globe" }               // 🌐 generic, no square
             );
+
 
             modelBuilder.Entity<SiteSettings>().HasData(
                 new SiteSettings
@@ -109,7 +110,8 @@ namespace Capitol_Theatre.Data
                     BackgroundImageTiled = false, // Default to no tiling
                     BackgroundColor = "#ffffff", // White background
                     FontColor = "#000000", // Black text
-                    LastUpdated = new DateTime(2024, 01, 01, 0, 0, 0, DateTimeKind.Utc)
+                    CardBackgroundColor = "#ffffff", // White card background
+                    LastUpdated = new DateTime(2024, 01, 01, 0, 0, 0, DateTimeKind.Utc) // Default timestamp
                 }
             );
         }
@@ -272,18 +274,19 @@ namespace Capitol_Theatre.Data
     public class SiteSettings
     {
         public int Id { get; set; }
-        // Logo
         public string IconUrl { get; set; } = "";
-        // Background Settings
         public string BackgroundImageUrl { get; set; } = "";
-        public string BackgroundImageAlignment { get; set; } = "left"; // center, left, right, top-left, top-center, etc.
+        public string BackgroundImageAlignment { get; set; } = "left";
         public bool BackgroundImageTiled { get; set; } = false;
-        // Colors
-        public string BackgroundColor { get; set; } = "#ffffff"; // default white
-        public string FontColor { get; set; } = "#000000";        // default black
-        // Timestamp
+        public string BackgroundColor { get; set; } = "#ffffff";
+        public string FontColor { get; set; } = "#000000";
+        public string CardBackgroundColor { get; set; } = "#ffffff";
         public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
+
+        // ✅ Add this:
+        public ICollection<SocialMediaLink> SocialMediaLinks { get; set; } = new List<SocialMediaLink>();
     }
+
     public class SocialMediaLink
     {
         public int Id { get; set; }

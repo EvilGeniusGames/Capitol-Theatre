@@ -3,6 +3,7 @@ using System;
 using Capitol_Theatre.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Capitol_Theatre.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250429222223_changedsocilmedia")]
+    partial class changedsocilmedia
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.4");
@@ -278,10 +281,6 @@ namespace Capitol_Theatre.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("CardBackgroundColor")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("FontColor")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -305,7 +304,6 @@ namespace Capitol_Theatre.Migrations
                             BackgroundImageAlignment = "left",
                             BackgroundImageTiled = false,
                             BackgroundImageUrl = "",
-                            CardBackgroundColor = "#ffffff",
                             FontColor = "#000000",
                             IconUrl = "",
                             LastUpdated = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
@@ -322,9 +320,6 @@ namespace Capitol_Theatre.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<int?>("SiteSettingsId")
-                        .HasColumnType("INTEGER");
-
                     b.Property<int>("SocialMediaTypeId")
                         .HasColumnType("INTEGER");
 
@@ -333,8 +328,6 @@ namespace Capitol_Theatre.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("SiteSettingsId");
 
                     b.HasIndex("SocialMediaTypeId");
 
@@ -644,10 +637,6 @@ namespace Capitol_Theatre.Migrations
 
             modelBuilder.Entity("Capitol_Theatre.Data.SocialMediaLink", b =>
                 {
-                    b.HasOne("Capitol_Theatre.Data.SiteSettings", null)
-                        .WithMany("SocialMediaLinks")
-                        .HasForeignKey("SiteSettingsId");
-
                     b.HasOne("Capitol_Theatre.Data.SocialMediaType", "SocialMediaType")
                         .WithMany()
                         .HasForeignKey("SocialMediaTypeId")
@@ -716,11 +705,6 @@ namespace Capitol_Theatre.Migrations
             modelBuilder.Entity("Capitol_Theatre.Data.RecurringShowtimeRule", b =>
                 {
                     b.Navigation("Days");
-                });
-
-            modelBuilder.Entity("Capitol_Theatre.Data.SiteSettings", b =>
-                {
-                    b.Navigation("SocialMediaLinks");
                 });
 #pragma warning restore 612, 618
         }

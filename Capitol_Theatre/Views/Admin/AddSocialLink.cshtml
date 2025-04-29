@@ -1,0 +1,38 @@
+﻿@model Capitol_Theatre.Data.SocialMediaLink
+
+@{
+    ViewData["Title"] = "Add Social Media Link";
+}
+
+<div class="container mt-4">
+    <h2>➕ Add Social Media Link</h2>
+
+    <form asp-action="@(Model.Id == 0 ? "AddSocialLink" : "EditSocialLink")" method="post">
+        @Html.AntiForgeryToken()
+
+        <div class="mb-3">
+            <label asp-for="SocialMediaTypeId" class="form-label"></label>
+            <select asp-for="SocialMediaTypeId" class="form-select" asp-items="ViewBag.SocialMediaTypes"></select>
+            <span asp-validation-for="SocialMediaTypeId" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Url" class="form-label"></label>
+            <input asp-for="Url" class="form-control" />
+            <span asp-validation-for="Url" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="IconColor" class="form-label"></label>
+            <input asp-for="IconColor" type="color" class="form-control form-control-color" />
+            <span asp-validation-for="IconColor" class="text-danger"></span>
+        </div>
+
+        <button type="submit" class="btn btn-success">Save</button>
+        <a asp-action="ManageSiteSettings" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+}

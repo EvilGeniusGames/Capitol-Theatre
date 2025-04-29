@@ -1,5 +1,8 @@
 ﻿@model IEnumerable<Capitol_Theatre.Data.Movie>
-
+@inject Capitol_Theatre.Services.ISiteSettingsService SiteSettingsService
+@{
+    var siteSettings = SiteSettingsService.GetSettings();
+}
 @{
     var mode = ViewData["Mode"]?.ToString() ?? "nowshowing";
     var title = ViewData["Title"]?.ToString() ?? "Movies";
@@ -25,7 +28,8 @@
     <div class="d-flex flex-wrap gap-4 justify-content-center justify-content-md-start">
         @foreach (var movie in Model)
         {
-            <div class="card shadow-sm" style="width: 24rem;">
+            <div class="card shadow-sm" style="width: 24rem; background-color: @siteSettings.CardBackgroundColor;">
+
                 <div class="poster-container" data-trailer="@movie.TrailerUrl" onclick="handlePosterClick(this)">
                     <img src="@movie.PosterPath" class="card-img-top img-fluid" alt="@movie.Title Poster">
                     @if (!string.IsNullOrWhiteSpace(movie.Description))
@@ -40,7 +44,7 @@
                     }
                 </div>
 
-                <div class="card-body">
+                <div class="card-body background-color: @siteSettings.CardBackgroundColor;">
                     <h5 class="card-title">@movie.Title</h5>
 
                     @if (movie.Showtimes != null && movie.Showtimes.Any())
