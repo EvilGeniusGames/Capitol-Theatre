@@ -35,45 +35,60 @@ public class AdminController : Controller
         return View(users);
     }
 
+    // Updated UploadImage to support universal upload
     [HttpPost]
     [Authorize(Roles = "Administrator")]
-    public async Task<IActionResult> UploadImage(IFormFile image)
+    public async Task<IActionResult> UploadImage([FromForm] IFormFile image, [FromForm] string folder)
     {
-        if (image == null || image.Length == 0)
-            return BadRequest("No image uploaded.");
-
-        // Step 1: Save to temp folder first
-        var tempFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "Images", "upload");
-        Directory.CreateDirectory(tempFolder);
-
-        var fileName = Path.GetFileName(image.FileName);
-        var tempPath = Path.Combine(tempFolder, fileName);
-
-        using (var stream = new FileStream(tempPath, FileMode.Create))
+        try
         {
-            await image.CopyToAsync(stream);
+            if (image == null || image.Length == 0) return BadRequest("No file uploaded.");
+
+            var uploads = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", folder);
+            if (!Directory.Exists(uploads)) Directory.CreateDirectory(uploads);
+
+            var filePath = Path.Combine(uploads, Path.GetFileName(image.FileName));
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await image.CopyToAsync(stream);
+            }
+
+            var relativePath = $"/images/{folder}/{image.FileName}";
+            return Json(new { location = relativePath });
         }
-
-        // Step 2: Move to posters folder
-        var postersFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "Images", "posters");
-        Directory.CreateDirectory(postersFolder);
-
-        var finalPath = Path.Combine(postersFolder, fileName);
-
-        if (System.IO.File.Exists(finalPath))
+        catch (Exception ex)
         {
-            // Optional: Overwrite or add GUID logic if you want
-            System.IO.File.Delete(finalPath);
+            Console.WriteLine("UploadImage Exception: " + ex.Message);
+            return StatusCode(500, "Internal server error.");
         }
-
-        System.IO.File.Move(tempPath, finalPath);
-
-        // Step 3: Return correct posters path to frontend
-        var publicPath = $"/Images/posters/{fileName}";
-
-        return Json(new { location = publicPath });
     }
 
+    // Updated BrowseImages to accept any folder
+    [HttpGet]
+    [Authorize(Roles = "Administrator")]
+    public IActionResult BrowseImages(string folder, string target)
+    {
+        if (string.IsNullOrWhiteSpace(folder))
+            return BadRequest("Folder not specified.");
+
+        string folderPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "Images", folder);
+
+        if (!Directory.Exists(folderPath))
+        {
+            Directory.CreateDirectory(folderPath);
+        }
+
+        var images = Directory.GetFiles(folderPath)
+            .Select(file => $"/Images/{folder}/" + Path.GetFileName(file))
+            .ToList();
+
+        ViewBag.TargetInput = target;
+        ViewBag.Folder = folder;
+        ViewBag.Images = images;
+
+        return View();
+    }
 
     [HttpGet]
     [Authorize(Roles = "Administrator")]
@@ -446,37 +461,5 @@ public class AdminController : Controller
         ViewBag.SocialMediaTypes = new SelectList(_context.SocialMediaTypes.OrderBy(x => x.Name), "Id", "Name", model.SocialMediaTypeId);
         return View(model);
     }
-
-    [HttpGet]
-    [Authorize(Roles = "Administrator")]
-    public IActionResult BrowseImages(string field)
-    {
-        string subfolder = field switch
-        {
-            "IconUrl" => "icons",
-            "BackgroundImageUrl" => "backgrounds",
-            _ => "misc"
-        };
-
-        var imageFolderPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "Images", subfolder);
-
-        // Ensure the Images folder and subfolder exist
-        if (!Directory.Exists(imageFolderPath))
-        {
-            Directory.CreateDirectory(imageFolderPath);
-        }
-
-        var images = Directory.GetFiles(imageFolderPath)
-            .Select(file => $"/Images/{subfolder}/" + Path.GetFileName(file))
-            .ToList();
-
-        ViewBag.Field = field;
-        ViewBag.Images = images;
-
-        return View();
-    }
-
-
-
 
 }
