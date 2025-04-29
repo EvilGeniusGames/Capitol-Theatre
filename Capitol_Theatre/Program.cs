@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.DataProtection;
+using Capitol_Theatre.Services;
 
 public class Program
 {
@@ -45,7 +46,7 @@ public class Program
 
         builder.Services.AddControllersWithViews().AddRazorRuntimeCompilation();
         builder.Services.AddDataProtection().PersistKeysToFileSystem(new DirectoryInfo("/app/keyring"));
-
+        builder.Services.AddScoped<ISiteSettingsService, SiteSettingsService>();
         builder.Services.AddRazorPages();
         SQLitePCL.Batteries_V2.Init();
 

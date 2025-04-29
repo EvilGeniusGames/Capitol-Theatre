@@ -36,6 +36,7 @@ public class AdminController : Controller
     }
 
     // Updated UploadImage to support universal upload
+    // POST: Admin/UploadImage
     [HttpPost]
     [Authorize(Roles = "Administrator")]
     public async Task<IActionResult> UploadImage([FromForm] IFormFile image, [FromForm] string folder)
@@ -65,6 +66,7 @@ public class AdminController : Controller
     }
 
     // Updated BrowseImages to accept any folder
+    // GET: Admin/BrowseImages
     [HttpGet]
     [Authorize(Roles = "Administrator")]
     public IActionResult BrowseImages(string folder, string target)
@@ -89,7 +91,7 @@ public class AdminController : Controller
 
         return View();
     }
-
+    //  GET: Admin/EditPage
     [HttpGet]
     [Authorize(Roles = "Administrator")]
     public IActionResult Edit(int id)
@@ -98,7 +100,7 @@ public class AdminController : Controller
         if (page == null) return NotFound();
         return View("EditPage", page);
     }
-
+    //  POST: Admin/EditPage
     [HttpPost]
     [Authorize(Roles = "Administrator")]
     public IActionResult Edit(PageContent model)
@@ -114,7 +116,7 @@ public class AdminController : Controller
 
         return RedirectToAction("Index");
     }
-
+    // GET: Admin/UploadImages
     [HttpGet]
     [Authorize(Roles = "Administrator")]
     public IActionResult GetUploadedImages()
@@ -129,7 +131,7 @@ public class AdminController : Controller
 
         return Json(files);
     }
-
+    // GET: Admin/ManageMovies
     [Authorize(Roles = "Administrator")]
     [HttpGet]
     public IActionResult ManageMovies(string sort = "Status", string dir = "asc")
@@ -181,7 +183,7 @@ public class AdminController : Controller
 
         return View(sortedMovies.ToList());
     }
-
+    // GET: Admin/EditMovie
     [HttpGet]
     [Authorize(Roles = "Administrator")]
     public async Task<IActionResult> Notices()
@@ -189,14 +191,14 @@ public class AdminController : Controller
         var notices = await _context.Notices.OrderByDescending(n => n.PostedAt).ToListAsync();
         return View(notices);
     }
-
+    // GET: Admin/CreateNotice
     [HttpGet]
     [Authorize(Roles = "Administrator")]
     public IActionResult CreateNotice()
     {
         return View();
     }
-
+    // POST: Admin/CreateNotice
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Roles = "Administrator")]
@@ -210,7 +212,7 @@ public class AdminController : Controller
         }
         return View(notice);
     }
-
+    //  GET: Admin/EditNotice
     [HttpGet]
     [Authorize(Roles = "Administrator")]
     public async Task<IActionResult> EditNotice(int id)
@@ -219,7 +221,7 @@ public class AdminController : Controller
         if (notice == null) return NotFound();
         return View(notice);
     }
-
+    // POST: Admin/EditNotice
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Roles = "Administrator")]
@@ -243,7 +245,7 @@ public class AdminController : Controller
         }
         return View(notice);
     }
-
+    // GET: Admin/DeleteNotice
     [HttpGet]
     [Authorize(Roles = "Administrator")]
     public async Task<IActionResult> DeleteNotice(int id)
@@ -256,7 +258,7 @@ public class AdminController : Controller
         return RedirectToAction(nameof(Notices));
     }
 
-   
+    // GET: Admin/DeleteUser
     [HttpGet]
     [Authorize(Roles = "Administrator")]
     public async Task<IActionResult> DeleteUser(string id)
@@ -266,7 +268,7 @@ public class AdminController : Controller
 
         return View(user);
     }
-
+    // POST: Admin/DeleteUser
     [HttpPost, ActionName("DeleteUser")]
     [Authorize(Roles = "Administrator")]
     [ValidateAntiForgeryToken]
@@ -286,7 +288,7 @@ public class AdminController : Controller
 
         return RedirectToAction("Users");
     }
-
+    // GET: Admin/ManageUser
     [HttpGet]
     [Authorize(Roles = "Administrator")]
     public async Task<IActionResult> ManageUser(string? id)
@@ -306,7 +308,7 @@ public class AdminController : Controller
             Email = user.Email
         });
     }
-
+    // POST: Admin/ManageUser
     [HttpPost]
     [Authorize(Roles = "Administrator")]
     public async Task<IActionResult> ManageUser(EditUserViewModel model)
@@ -373,20 +375,86 @@ public class AdminController : Controller
     [HttpGet]
     [Authorize(Roles = "Administrator")]
     public async Task<IActionResult> ManageSiteSettings()
+    {
+        var settings = await _context.SiteSettings.FirstOrDefaultAsync();
+        if (settings == null)
         {
-            var settings = await _context.SiteSettings.FirstOrDefaultAsync();
-            if (settings == null)
-            {
-                settings = new SiteSettings();
-            }
-            return View(settings);
+            settings = new SiteSettings();
         }
+
+        ViewBag.SocialMediaLinks = await _context.SocialMediaLinks
+            .Include(x => x.SocialMediaType)
+            .OrderBy(x => x.SocialMediaType.Name)
+            .ToListAsync();
+
+        return View(settings);
+    }
+    // GET: Admin/EditSocialLink
+    [HttpGet]
+    [Authorize(Roles = "Administrator")]
+    public async Task<IActionResult> EditSocialLink(int id)
+    {
+        var link = await _context.SocialMediaLinks
+            .Include(x => x.SocialMediaType)
+            .FirstOrDefaultAsync(x => x.Id == id);
+
+        if (link == null)
+        {
+            return NotFound();
+        }
+
+        ViewBag.SocialMediaTypes = new SelectList(_context.SocialMediaTypes.OrderBy(x => x.Name), "Id", "Name", link.SocialMediaTypeId);
+        return View("AddSocialLink", link); // Reuse the AddSocialLink.cshtml view
+    }
+    // POST: Admin/EditSocialLink
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Administrator")]
+    public async Task<IActionResult> EditSocialLink(SocialMediaLink link)
+    {
+        if (ModelState.IsValid)
+        {
+            _context.SocialMediaLinks.Update(link);
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(ManageSiteSettings));
+        }
+
+        ViewBag.SocialMediaTypes = new SelectList(_context.SocialMediaTypes.OrderBy(x => x.Name), "Id", "Name", link.SocialMediaTypeId);
+        return View("AddSocialLink", link);
+    }
+
+    // GET: Admin/DeleteSocialLink
+    [HttpGet]
+    [Authorize(Roles = "Administrator")]
+    public async Task<IActionResult> DeleteSocialLink(int id)
+    {
+        var link = await _context.SocialMediaLinks.FindAsync(id);
+        if (link == null)
+        {
+            return NotFound();
+        }
+
+        _context.SocialMediaLinks.Remove(link);
+        await _context.SaveChangesAsync();
+
+        return RedirectToAction(nameof(ManageSiteSettings));
+    }
+
 
     // POST: Admin/ManageSiteSettings
     [HttpPost]
     [Authorize(Roles = "Administrator")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ManageSiteSettings(IFormFile? IconFile, IFormFile? BackgroundFile, string? IconUrl, string? BackgroundImageUrl, string BackgroundImageAlignment, bool BackgroundImageTiled, string BackgroundColor, string FontColor)
+    public async Task<IActionResult> ManageSiteSettings(
+    IFormFile? IconFile,
+    IFormFile? BackgroundFile,
+    string? IconUrl,
+    string? BackgroundImageUrl,
+    string BackgroundImageAlignment,
+    bool BackgroundImageTiled,
+    string BackgroundColor,
+    string FontColor,
+    string CardBackgroundColor) // 👈 add this
     {
         var existing = await _context.SiteSettings.FirstOrDefaultAsync();
         if (existing == null)
@@ -403,9 +471,9 @@ public class AdminController : Controller
                 existing.IconUrl = uploadedIconPath;
             }
         }
-        else if (!string.IsNullOrEmpty(IconUrl))
+        else
         {
-            existing.IconUrl = IconUrl;
+            existing.IconUrl = IconUrl ?? "";
         }
 
         // Upload new Background if provided
@@ -417,9 +485,9 @@ public class AdminController : Controller
                 existing.BackgroundImageUrl = uploadedBackgroundPath;
             }
         }
-        else if (!string.IsNullOrEmpty(BackgroundImageUrl))
+        else
         {
-            existing.BackgroundImageUrl = BackgroundImageUrl;
+            existing.BackgroundImageUrl = BackgroundImageUrl ?? "";
         }
 
         // Update other settings
@@ -428,11 +496,13 @@ public class AdminController : Controller
         existing.BackgroundColor = BackgroundColor;
         existing.FontColor = FontColor;
         existing.LastUpdated = DateTime.UtcNow;
-
+        existing.CardBackgroundColor = CardBackgroundColor;
+        // Save changes to the database
         await _context.SaveChangesAsync();
 
         return RedirectToAction(nameof(ManageSiteSettings));
     }
+
 
 
 
@@ -447,19 +517,21 @@ public class AdminController : Controller
 
     // POST: Admin/AddSocialLink
     [HttpPost]
-    [Authorize(Roles = "Administrator")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AddSocialLink(SocialMediaLink model)
+    [Authorize(Roles = "Administrator")]
+    public async Task<IActionResult> AddSocialLink(SocialMediaLink link)
     {
         if (ModelState.IsValid)
         {
-            _context.SocialMediaLinks.Add(model);
+            _context.SocialMediaLinks.Add(link);
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(ManageSiteSettings));
         }
 
-        ViewBag.SocialMediaTypes = new SelectList(_context.SocialMediaTypes.OrderBy(x => x.Name), "Id", "Name", model.SocialMediaTypeId);
-        return View(model);
+        // If validation fails, reload social media types and redisplay form
+        ViewBag.SocialMediaTypes = new SelectList(_context.SocialMediaTypes.OrderBy(x => x.Name), "Id", "Name");
+        return View(link);
     }
+
 
 }
