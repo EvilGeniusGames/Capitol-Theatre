@@ -1,8 +1,10 @@
-﻿# 🎬 Capitol Theatre Website (Alpha)
+# 🎬 Capitol Theatre Website (Alpha)
 
 A custom-built movie poster CMS and public website for the Capitol Theatre.
 
 > 🚧 This project is currently in **alpha**. Features and layout are actively evolving.
+
+📖 **[Installation & Recovery Manual →](./RECOVERY.md)**
 
 ---
 
@@ -14,6 +16,8 @@ A custom-built movie poster CMS and public website for the Capitol Theatre.
 - **Showtimes Rendering**: Intelligently formats evening and matinee showtimes per day.
 - **Notice System**: Displays time-limited notices with Bootstrap alert styling.
 - **Responsive Design**: Clean layout with Bootstrap 5 and mobile-first considerations.
+- **Improved Poster Scaling**: Card and text scaling optimized for desktop and mobile.
+- **Single-Click Navigation**: Poster reveals description; second click opens trailer.
 
 ### 🔐 Admin Interface
 - **Movie Management**: Add, edit, delete movies with poster upload, showtime scheduling, and ratings.
@@ -21,6 +25,9 @@ A custom-built movie poster CMS and public website for the Capitol Theatre.
 - **Notice Editor**: Manage public alerts with date range and color-coding.
 - **Page Content Editing**: Markdown/HTML editor (TinyMCE) for static page content.
 - **Authentication**: Admin access protected with ASP.NET Identity.
+- **Site Settings**: Update site visuals like logo, background, and color.
+- **Social Media Management**: Admin interface for editing and displaying icon links.
+- **Backup Generator**: Create downloadable ZIP containing DB and image assets.
 
 ---
 
