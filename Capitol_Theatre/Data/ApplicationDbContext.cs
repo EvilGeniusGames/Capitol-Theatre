@@ -138,6 +138,7 @@ namespace Capitol_Theatre.Data
         public DateTime? EndShowingDate { get; set; }
         public int? RunLength { get; set; }
 
+
         public string GetFormattedShowtimes()
         {
             if (Showtimes == null || !Showtimes.Any())
@@ -153,7 +154,12 @@ namespace Capitol_Theatre.Data
 
             foreach (var group in groups)
             {
-                var days = group.Select(s => s.StartTime.DayOfWeek).Distinct().OrderBy(d => (int)(((int)d + 6) % 7)).ToList();
+                var days = group
+                    .Select(s => s.StartTime.DayOfWeek)
+                    .Distinct()
+                    .OrderBy(d => ((int)d + 2) % 7) // Friday = 0, Thursday = 6
+                    .ToList();
+
                 string dayRange = FormatDayRange(days);
                 string time = DateTime.Today.Add(group.Key).ToString("h:mm tt");
 
@@ -183,29 +189,49 @@ namespace Capitol_Theatre.Data
             };
         }
 
-        private static string FormatDayRange(List<DayOfWeek> days)
+        private static readonly Dictionary<DayOfWeek, string> DayShortNames = new()
         {
-            var orderedDays = new[] { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday, DayOfWeek.Sunday };
-            var indices = days.Select(d => Array.IndexOf(orderedDays, d)).OrderBy(i => i).ToList();
+            [DayOfWeek.Sunday] = "Sun",
+            [DayOfWeek.Monday] = "Mon",
+            [DayOfWeek.Tuesday] = "Tue",
+            [DayOfWeek.Wednesday] = "Wed",
+            [DayOfWeek.Thursday] = "Thu",
+            [DayOfWeek.Friday] = "Fri",
+            [DayOfWeek.Saturday] = "Sat"
+        };
+
+        private string FormatDayRange(List<DayOfWeek> days)
+        {
+            if (!days.Any()) return "";
+
+            // Reorder so Friday is 0, Thursday is 6
+            days = days.OrderBy(d => ((int)d + 2) % 7).ToList();
 
             List<string> ranges = new();
-            int start = indices[0], end = start;
+            int i = 0;
 
-            for (int i = 1; i < indices.Count; i++)
+            while (i < days.Count)
             {
-                if (indices[i] == end + 1)
+                var start = days[i];
+                var end = start;
+
+                while (i + 1 < days.Count &&
+                       (((int)days[i + 1] - (int)end == 1) || ((int)end == 6 && (int)days[i + 1] == 0)))
                 {
-                    end = indices[i];
+                    end = days[++i];
                 }
+
+                if (start == end)
+                    ranges.Add(DayShortNames[start]);
                 else
-                {
-                    ranges.Add(FormatRange(orderedDays[start], orderedDays[end]));
-                    start = end = indices[i];
-                }
+                    ranges.Add($"{DayShortNames[start]}–{DayShortNames[end]}");
+
+                i++;
             }
-            ranges.Add(FormatRange(orderedDays[start], orderedDays[end]));
+
             return string.Join(", ", ranges);
         }
+
 
         private static string FormatRange(DayOfWeek start, DayOfWeek end)
         {

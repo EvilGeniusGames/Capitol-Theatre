@@ -1,11 +1,11 @@
 ﻿@model Capitol_Theatre.Data.PageContent
 
 @{
-    ViewData["Title"] = Model.PageKey;
+    ViewData["Title"] ??= Model.PageKey;
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<h2 class="my-4">@Model.PageKey</h2>
+<h2 class="my-4">@ViewData["Title"]</h2>
 
 <div class="card bg-white shadow-sm p-4">
     <div class="content-area">

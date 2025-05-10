@@ -8,9 +8,21 @@
     var title = ViewData["Title"]?.ToString() ?? "Movies";
 
     var today = DateTime.Today;
-    var start = today.AddDays(-((int)today.DayOfWeek + 2) % 7);
-    var end = start.AddDays(6);
-    var nextFriday = today.AddDays(14 - ((int)today.DayOfWeek + 2) % 7);
+    // var start = today.AddDays(-((int)today.DayOfWeek + 2) % 7);
+    // var end = start.AddDays(6);
+    DateTime start, end;
+
+    if (mode.Equals("nextweek", StringComparison.OrdinalIgnoreCase))
+    {
+        start = today.AddDays(7 - ((int)today.DayOfWeek + 2) % 7); // Next Friday
+    }
+    else
+    {
+        start = today.AddDays(-((int)today.DayOfWeek + 2) % 7); // This Friday
+    }
+
+    end = start.AddDays(6);
+    var nextFriday = start.AddDays(14);
 }
 
 <div class="container py-4">
@@ -60,7 +72,12 @@
                             <strong>Last Showing:</strong> @movie.EndShowingDate.Value.ToString("dddd MMMM d")
                         </p>
                     }
-
+                    @if (movie.RunLength.HasValue)
+                    {
+                        <p class="card-text mb-1">
+                            <strong>Runtime:</strong> @movie.runtime.Value.ToString() min
+                        </p>
+                    }
                     <p class="card-text">
                         <strong>Rating:</strong> @movie.Rating?.Code
                         @if (!string.IsNullOrWhiteSpace(movie.Warning))
@@ -79,25 +96,25 @@
         function handlePosterClick(container) {
             const isMobile = window.innerWidth < 768;
             const overlay = container.querySelector('.poster-overlay');
+            const trailerUrl = container.dataset.trailer;
 
             if (!isMobile) {
-                const trailerUrl = container.dataset.trailer;
-                if (trailerUrl) {
-                    window.open(trailerUrl, '_blank');
-                }
+                if (trailerUrl) window.open(trailerUrl, '_blank');
                 return;
             }
 
             if (!overlay.classList.contains('active')) {
                 document.querySelectorAll('.poster-overlay').forEach(o => o.classList.remove('active'));
                 overlay.classList.add('active');
+                container.dataset.activated = "1";
             } else {
-                const trailerUrl = container.dataset.trailer;
-                if (trailerUrl) {
+                if (trailerUrl && container.dataset.activated === "1") {
                     window.open(trailerUrl, '_blank');
+                    container.dataset.activated = "0";
                 }
             }
         }
+
 
         document.addEventListener('DOMContentLoaded', function () {
             document.querySelectorAll('.poster-container').forEach(container => {
@@ -118,4 +135,3 @@
     </script>
 }
 
-}
