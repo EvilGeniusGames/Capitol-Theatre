@@ -49,6 +49,7 @@ public class PagesController : Controller
     {
         var content = _context.PageContents.FirstOrDefault(p => p.PageKey == "Tickets");
         if (content == null) return NotFound();
+        ViewData["Title"] = "Tickets/Hours";
         return View("~/Views/Pages/Render.cshtml", model: content);
     }
 
