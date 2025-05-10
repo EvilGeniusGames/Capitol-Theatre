@@ -72,7 +72,7 @@
                             <strong>Last Showing:</strong> @movie.EndShowingDate.Value.ToString("dddd MMMM d")
                         </p>
                     }
-                    @if (movie.RunLength.HasValue)
+                    @if (movie.runtime.HasValue)
                     {
                         <p class="card-text mb-1">
                             <strong>Runtime:</strong> @movie.runtime.Value.ToString() min
