@@ -134,13 +134,16 @@ public class AdminController : Controller
     // GET: Admin/ManageMovies
     [Authorize(Roles = "Administrator")]
     [HttpGet]
-    public IActionResult ManageMovies(string sort = "Status", string dir = "asc")
+    public IActionResult ManageMovies(string sort = "Status", string dir = "asc", bool showExpired = false)
     {
         var movies = _context.Movies.Include(m => m.Rating).Include(m => m.Showtimes).ToList();
 
         DateTime today = DateTime.Today;
         DateTime thisFriday = today.AddDays(-((int)today.DayOfWeek + 2) % 7);
         DateTime twoFridays = thisFriday.AddDays(14);
+
+        if (!showExpired)
+            movies = movies.Where(m => !m.EndShowingDate.HasValue || m.EndShowingDate.Value >= today).ToList();
 
         string GetMovieStatus(Movie movie)
         {
@@ -158,6 +161,15 @@ public class AdminController : Controller
             return "Unscheduled";
         }
 
+        int GetStatusOrder(string status) => status switch
+        {
+            "Now Showing" => 0,
+            "Next Week" => 1,
+            "Coming Soon" => 2,
+            "Expired" => 3,
+            _ => 4
+        };
+
         var sortedMovies = movies.Select(m => new MovieListing
         {
             Movie = m,
@@ -174,15 +186,18 @@ public class AdminController : Controller
             ("Runtime", "desc") => sortedMovies.OrderByDescending(m => m.Movie.runtime),
             ("Dates", "asc") => sortedMovies.OrderBy(m => m.Movie.StartShowingDate),
             ("Dates", "desc") => sortedMovies.OrderByDescending(m => m.Movie.StartShowingDate),
-            ("Status", "desc") => sortedMovies.OrderByDescending(m => m.Status),
-            _ => sortedMovies.OrderBy(m => m.Status)
+            ("Status", "asc") => sortedMovies.OrderBy(m => GetStatusOrder(m.Status)),
+            ("Status", "desc") => sortedMovies.OrderByDescending(m => GetStatusOrder(m.Status)),
+            _ => sortedMovies.OrderBy(m => GetStatusOrder(m.Status))
         };
 
         ViewBag.Sort = sort;
         ViewBag.Dir = dir;
+        ViewBag.ShowExpired = showExpired;
 
         return View(sortedMovies.ToList());
     }
+
     // GET: Admin/EditMovie
     [HttpGet]
     [Authorize(Roles = "Administrator")]
