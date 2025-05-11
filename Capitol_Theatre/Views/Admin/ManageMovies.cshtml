@@ -6,6 +6,8 @@
 
     string sort = ViewBag.Sort ?? "Status";
     string dir = ViewBag.Dir ?? "asc";
+    bool showExpired = ViewBag.ShowExpired ?? false;
+
     string NextDir(string currentSort) => sort == currentSort && dir == "asc" ? "desc" : "asc";
 }
 
@@ -13,15 +15,26 @@
 
 <a asp-controller="CreateEditMovie" asp-action="Index" asp-route-mode="Create" class="btn btn-primary mb-3">➕ Add New Movie</a>
 
+<form method="get" asp-action="ManageMovies" class="mb-3">
+    <input type="hidden" name="sort" value="@sort" />
+    <input type="hidden" name="dir" value="@dir" />
+    <label class="form-check-label">
+        <input type="checkbox" name="showExpired" value="true"
+               class="form-check-input"
+        @(showExpired ? "checked" : "") onchange="this.form.submit()" />
+        Show Expired Movies
+    </label>
+</form>
+
 <div class="card bg-light p-4">
     <table class="table table-striped">
         <thead class="table-dark">
             <tr>
-                <th><a asp-action="ManageMovies" asp-route-sort="Title" asp-route-dir="@NextDir("Title")">Title</a></th>
-                <th><a asp-action="ManageMovies" asp-route-sort="Status" asp-route-dir="@NextDir("Status")">Status</a></th>
-                <th><a asp-action="ManageMovies" asp-route-sort="Rating" asp-route-dir="@NextDir("Rating")">Rating</a></th>
-                <th><a asp-action="ManageMovies" asp-route-sort="Runtime" asp-route-dir="@NextDir("Runtime")">Runtime</a></th>
-                <th><a asp-action="ManageMovies" asp-route-sort="Dates" asp-route-dir="@NextDir("Dates")">Start - End Dates</a></th>
+                <th><a asp-action="ManageMovies" asp-route-sort="Title" asp-route-dir="@NextDir("Title")" asp-route-showExpired="@showExpired">Title</a></th>
+                <th><a asp-action="ManageMovies" asp-route-sort="Status" asp-route-dir="@NextDir("Status")" asp-route-showExpired="@showExpired">Status</a></th>
+                <th><a asp-action="ManageMovies" asp-route-sort="Rating" asp-route-dir="@NextDir("Rating")" asp-route-showExpired="@showExpired">Rating</a></th>
+                <th><a asp-action="ManageMovies" asp-route-sort="Runtime" asp-route-dir="@NextDir("Runtime")" asp-route-showExpired="@showExpired">Runtime</a></th>
+                <th><a asp-action="ManageMovies" asp-route-sort="Dates" asp-route-dir="@NextDir("Dates")" asp-route-showExpired="@showExpired">Start - End Dates</a></th>
                 <th>Actions</th>
             </tr>
         </thead>
