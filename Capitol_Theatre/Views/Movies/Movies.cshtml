@@ -74,8 +74,10 @@
                     }
                     @if (movie.runtime.HasValue)
                     {
+                        var hours = movie.runtime.Value / 60;
+                        var minutes = movie.runtime.Value % 60;
                         <p class="card-text mb-1">
-                            <strong>Runtime:</strong> @movie.runtime.Value.ToString() min
+                            <strong>Runtime:</strong> @($"{hours}h {minutes}m")
                         </p>
                     }
                     <p class="card-text">
@@ -95,25 +97,31 @@
     <script>
         function handlePosterClick(container) {
             const isMobile = window.innerWidth < 768;
-            const overlay = container.querySelector('.poster-overlay');
             const trailerUrl = container.dataset.trailer;
+            const overlay = container.querySelector('.poster-overlay');
+
+            if (!trailerUrl) return;
 
             if (!isMobile) {
-                if (trailerUrl) window.open(trailerUrl, '_blank');
+                window.open(trailerUrl, '_blank');
                 return;
             }
 
-            if (!overlay.classList.contains('active')) {
-                document.querySelectorAll('.poster-overlay').forEach(o => o.classList.remove('active'));
-                overlay.classList.add('active');
-                container.dataset.activated = "1";
-            } else {
-                if (trailerUrl && container.dataset.activated === "1") {
-                    window.open(trailerUrl, '_blank');
-                    container.dataset.activated = "0";
-                }
+            if (container.dataset.clicked === "true") {
+                container.dataset.clicked = "false";
+                window.open(trailerUrl, '_blank');
+                return;
             }
+
+            // First tap: show overlay and set flag
+            document.querySelectorAll('.poster-container').forEach(c => c.dataset.clicked = "false");
+            document.querySelectorAll('.poster-overlay').forEach(o => o.classList.remove('active'));
+
+            container.dataset.clicked = "true";
+            overlay.classList.add('active');
         }
+
+
 
 
         document.addEventListener('DOMContentLoaded', function () {
