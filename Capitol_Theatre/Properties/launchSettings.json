@@ -10,7 +10,7 @@
         "AdminPassword": "J@defalcon016"
       },
       "dotnetRunMessages": true,
-      "applicationUrl": "http://localhost:5193"
+      "applicationUrl": "http://0.0.0.0:5193"
     },
     "IIS Express": {
       "commandName": "IISExpress",
