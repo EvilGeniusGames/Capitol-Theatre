@@ -13,19 +13,15 @@ namespace Capitol_Theatre.Data
             : base(options)
         {
         }
-
         public DbSet<Movie> Movies { get; set; }
         public DbSet<Showtime> Showtimes { get; set; }
-        public DbSet<RecurringShowtimeRule> RecurringShowtimeRules { get; set; }
-        public DbSet<DayOfWeekRule> DayOfWeekRules { get; set; }
         public DbSet<Notice> Notices { get; set; }
         public DbSet<Rating> Ratings { get; set; }
         public DbSet<PageContent> PageContents { get; set; }
         public DbSet<SiteSettings> SiteSettings { get; set; }
         public DbSet<SocialMediaLink> SocialMediaLinks { get; set; }
         public DbSet<SocialMediaType> SocialMediaTypes { get; set; } = null!;
-
-
+        public DbSet<MovieShowDate> MovieShowDates { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -58,19 +54,20 @@ namespace Capitol_Theatre.Data
                 .HasColumnType("TEXT");
 
             modelBuilder.Entity<Movie>()
-                .HasMany(m => m.Showtimes)
-                .WithOne()
-                .HasForeignKey(s => s.MovieId);
-
-            modelBuilder.Entity<Movie>()
                 .HasOne(m => m.Rating)
                 .WithMany()
                 .HasForeignKey(m => m.RatingId);
 
-            modelBuilder.Entity<RecurringShowtimeRule>()
-                .HasMany(r => r.Days)
-                .WithOne()
-                .HasForeignKey(d => d.RecurringShowtimeRuleId);
+            modelBuilder.Entity<Movie>()
+                .HasMany(m => m.MovieShowDates)
+                .WithOne(msd => msd.Movie)
+                .HasForeignKey(msd => msd.MovieId);
+
+            modelBuilder.Entity<MovieShowDate>()
+                .HasMany(msd => msd.Showtimes)
+                .WithOne(s => s.MovieShowDate)
+                .HasForeignKey(s => s.MovieShowDateId);
+
 
             modelBuilder.Entity<PageContent>().HasData(
                 new PageContent { Id = 1, PageKey = "Gift Certificates", HtmlContent = "Coming soon...", LastUpdated = new DateTime(2024, 01, 01, 0, 0, 0, DateTimeKind.Utc) },
@@ -98,7 +95,6 @@ namespace Capitol_Theatre.Data
                 new SocialMediaType { Id = 7, Name = "Pinterest", FontAwesomeClass = "fab fa-pinterest-square" },// ✅ has square
                 new SocialMediaType { Id = 8, Name = "Bluesky", FontAwesomeClass = "fas fa-globe" }               // 🌐 generic, no square
             );
-
 
             modelBuilder.Entity<SiteSettings>().HasData(
                 new SiteSettings
@@ -128,55 +124,12 @@ namespace Capitol_Theatre.Data
         public int RatingId { get; set; }
         [BindNever]
         public Rating? Rating { get; set; } = null!;
-
         public string? Warning { get; set; } = string.Empty;
         public string? WarningColor { get; set; } = "warning";
-        public ICollection<Showtime>? Showtimes { get; set; } = new List<Showtime>();
         public string? TrailerUrl { get; set; }
         public int? runtime { get; set; }
-        public DateTime? StartShowingDate { get; set; }
-        public DateTime? EndShowingDate { get; set; }
         public int? RunLength { get; set; }
-
-
-        public string GetFormattedShowtimes()
-        {
-            if (Showtimes == null || !Showtimes.Any())
-                return "No showtimes available.";
-
-            var groups = Showtimes
-                .GroupBy(s => s.StartTime.TimeOfDay)
-                .OrderBy(g => g.Key)
-                .ToList();
-
-            List<string> eveningTimes = new();
-            List<string> matineeTimes = new();
-
-            foreach (var group in groups)
-            {
-                var days = group
-                    .Select(s => s.StartTime.DayOfWeek)
-                    .Distinct()
-                    .OrderBy(d => ((int)d + 2) % 7) // Friday = 0, Thursday = 6
-                    .ToList();
-
-                string dayRange = FormatDayRange(days);
-                string time = DateTime.Today.Add(group.Key).ToString("h:mm tt");
-
-                if (group.Key < new TimeSpan(17, 0, 0))
-                    matineeTimes.Add($"{dayRange} {time}");
-                else
-                    eveningTimes.Add($"{dayRange} {time}");
-            }
-
-            string result = "";
-            if (eveningTimes.Any())
-                result += "<strong>Showtimes:</strong> " + JoinTimes(eveningTimes) + "\n";
-            if (matineeTimes.Any())
-                result += "<strong>Matinées:</strong> " + JoinTimes(matineeTimes);
-
-            return result.Trim();
-        }
+        public ICollection<MovieShowDate> MovieShowDates { get; set; } = new List<MovieShowDate>();
 
         private static string JoinTimes(List<string> times)
         {
@@ -232,7 +185,6 @@ namespace Capitol_Theatre.Data
             return string.Join(", ", ranges);
         }
 
-
         private static string FormatRange(DayOfWeek start, DayOfWeek end)
         {
             string FormatDay(DayOfWeek day) => day.ToString().Substring(0, 3);
@@ -250,27 +202,12 @@ namespace Capitol_Theatre.Data
     public class Showtime
     {
         public int Id { get; set; }
-        public DateTime StartTime { get; set; }
-        public int MovieId { get; set; }
+        public TimeOnly StartTime { get; set; }
+        public int MovieShowDateId { get; set; }
+        public MovieShowDate MovieShowDate { get; set; } = null!;
     }
 
-    public class RecurringShowtimeRule
-    {
-        public int Id { get; set; }
-        public int MovieId { get; set; }
-        public Movie Movie { get; set; } = null!;
-        public TimeSpan TimeOfDay { get; set; }
-        public ICollection<DayOfWeekRule> Days { get; set; } = new List<DayOfWeekRule>();
-    }
-
-    public class DayOfWeekRule
-    {
-        public int Id { get; set; }
-        public DayOfWeek Day { get; set; }
-        public int RecurringShowtimeRuleId { get; set; }
-    }
-
-    public class Notice
+     public class Notice
     {
         public int Id { get; set; }
         public string Message { get; set; } = string.Empty;
@@ -321,4 +258,14 @@ namespace Capitol_Theatre.Data
         public string Url { get; set; } = "";       // User-supplied link
         public string IconColor { get; set; } = ""; // Optional, e.g., "#4285F4", "red"
     }
+
+    public class MovieShowDate
+    {
+        public int Id { get; set; }
+        public int MovieId { get; set; }
+        public Movie Movie { get; set; } = null!;
+        public DateOnly ShowDate { get; set; }
+        public ICollection<Showtime> Showtimes { get; set; } = new List<Showtime>();
+    }
+
 }

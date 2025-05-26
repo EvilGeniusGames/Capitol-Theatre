@@ -11,6 +11,7 @@
 <h2 class="my-4">@((isEdit ? "✏️ Edit Movie" : "➕ Add New Movie"))</h2>
 
 <div class="card bg-light p-4">
+    
     <form asp-action="Index" method="post">
         @Html.AntiForgeryToken()
 
@@ -21,7 +22,7 @@
         }
 
         <div asp-validation-summary="All" class="text-danger mb-3"></div>
-        
+
         <div class="mb-3">
             <label asp-for="Title" class="form-label"></label>
             <input asp-for="Title" class="form-control" />
@@ -31,7 +32,6 @@
         <div class="mb-3">
             <label class="form-label">Poster Image</label>
 
-            @* Display current poster file name, with ID for dynamic updates *@
             <div id="posterSelectedFilename" class="mb-2 text-muted small" style="display:@(string.IsNullOrEmpty(Model.PosterPath) ? "none" : "block")">
                 <strong>Selected:</strong> @System.IO.Path.GetFileName(Model.PosterPath)
             </div>
@@ -49,7 +49,6 @@
                 Upload or Choose Poster
             </button>
         </div>
-
 
         <div class="mb-3">
             <label asp-for="Description" class="form-label"></label>
@@ -86,41 +85,24 @@
             <span asp-validation-for="runtime" class="text-danger"></span>
         </div>
 
-        <div class="mb-3">
-            <label asp-for="StartShowingDate" class="form-label">Start Showing</label>
-            <input asp-for="StartShowingDate" class="form-control" type="date" />
-            <span asp-validation-for="StartShowingDate" class="text-danger"></span>
-        </div>
-
-        <div class="mb-3">
-            <label asp-for="EndShowingDate" class="form-label">End Showing</label>
-            <input asp-for="EndShowingDate" class="form-control" type="date" />
-            <span asp-validation-for="EndShowingDate" class="text-danger"></span>
-        </div>
-
+        <!-- NEW SHOWTIME INPUT -->
         <div class="mb-3">
             <label class="form-label">Add Showtimes</label>
-            <div class="d-flex align-items-end gap-2">
-                <select class="form-select" id="daySelector">
-                    @foreach (DayOfWeek day in Enum.GetValues(typeof(DayOfWeek)))
-                    {
-                        <option value="@day">@day</option>
-                    }
-                </select>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Select Dates</label>
+                    <input type="text" id="multiDatePicker" class="form-control" placeholder="Select one or more dates" />
+                    <ul class="list-group mt-2" id="dateList"></ul>
+                </div>
 
-                <input type="time" class="form-control" id="timeInput" value="19:30" />
-
-                <button type="button" class="btn btn-primary" onclick="addShowtime()">Add</button>
+                <div class="col-md-6">
+                    <label class="form-label">Add Time to Selected Dates</label>
+                    <input type="time" class="form-control" id="timePicker" />
+                    <button type="button" class="btn btn-outline-success mt-2" onclick="addTimeToDate()">Add Time</button>
+                </div>
             </div>
 
-            <ul class="list-group mt-3" id="showtimeList"></ul>
-
-            <input type="hidden" name="ShowtimeEntries" id="ShowtimeEntries" />
-        </div>
-
-        <div class="mb-3">
-            <label class="form-label">Run Length (days)</label>
-            <input class="form-control" value="@(Model.RunLength ?? 0)" readonly disabled />
+            <input type="hidden" name="ShowDateTimeEntries" id="ShowDateTimeEntries" />
         </div>
 
         <button type="submit" class="btn btn-success">@((isEdit ? "Save Changes" : "Create Movie"))</button>
@@ -133,68 +115,158 @@
     <script src="/js/uploadModalHelper.js"></script>
 
     <script>
-        function selectPoster(path) {
-            document.getElementById('PosterPath').value = path;
-            const preview = document.getElementById('posterPreview');
-            preview.src = path;
-            preview.style.display = 'block';
-        }
+        const showDateTimeMap = new Map();
 
-        function addShowtime() {
-            const day = document.getElementById("daySelector").value;
-            const time = document.getElementById("timeInput").value;
+        flatpickr("#multiDatePicker", {
+            mode: "multiple",
+            dateFormat: "Y-m-d",
+            onChange: function(selectedDates) {
+                selectedDates.forEach(d => {
+                    const date = d.toISOString().split('T')[0];
+                    if (!showDateTimeMap.has(date)) {
+                        showDateTimeMap.set(date, []);
+                        const listItem = document.createElement("li");
+                        listItem.className = "list-group-item";
+                        listItem.id = `date-${date}`;
+                        listItem.innerHTML = `
+                            <strong>${date}</strong>
+                            <button type="button" class="btn btn-sm btn-danger float-end" onclick="removeDate('${date}')">Remove</button>
+                            <ul class="list-group mt-2" id="times-${date}"></ul>`;
+                        document.getElementById("dateList").appendChild(listItem);
+                    }
+                });
+                updateHiddenField();
+            }
+        });
+
+            function addTimeToDate() {
+            const selectedDates = document.querySelector("#multiDatePicker")._flatpickr.selectedDates;
+            const time = document.getElementById("timePicker").value;
             if (!time) return;
 
-            const entry = `${day}|${time}`;
-            showtimes.push(entry);
-            document.getElementById("ShowtimeEntries").value = showtimes.join(",");
+            selectedDates.forEach(d => {
+                const date = d.toISOString().split('T')[0];
+                if (!showDateTimeMap.has(date)) return;
 
-            const listItem = document.createElement("li");
-            listItem.className = "list-group-item";
+                const times = showDateTimeMap.get(date);
+                if (times.includes(time)) return;
 
-            const [hour, minute] = time.split(':');
-            const hour12 = ((+hour % 12) || 12);
-            const formattedTime = `${hour12}:${minute}`;
+                times.push(time);
+                const timeList = document.getElementById(`times-${date}`);
+                const listItem = document.createElement("li");
+                listItem.className = "list-group-item";
 
-            listItem.innerHTML = `${day} at ${formattedTime} <button type="button" class="btn btn-sm btn-danger float-end" onclick="removeShowtime('${entry}', this)">Remove</button>`;
-            document.getElementById("showtimeList").appendChild(listItem);
+                const [hour, minute] = time.split(":");
+                const hour12 = ((+hour % 12) || 12);
+                const ampm = +hour >= 12 ? "PM" : "AM";
+                const formatted = `${hour12}:${minute} ${ampm}`;
+
+                listItem.innerHTML = `${formatted}
+                    <button type="button" class="btn btn-sm btn-danger float-end"
+                        onclick="removeTime('${date}', '${time}', this)">Remove</button>`;
+                timeList.appendChild(listItem);
+            });
+
+            updateHiddenField();
         }
 
-        function removeShowtime(entry, button) {
-            const index = showtimes.indexOf(entry);
-            if (index !== -1) {
-                showtimes.splice(index, 1);
-                document.getElementById("ShowtimeEntries").value = showtimes.join(",");
-                button.closest("li").remove();
+
+        function removeDate(date) {
+            showDateTimeMap.delete(date);
+            document.getElementById(`date-${date}`)?.remove();
+            updateHiddenField();
+        }
+
+        function removeTime(date, time, button) {
+            const times = showDateTimeMap.get(date);
+            if (!times) return;
+
+            const index = times.indexOf(time);
+            if (index !== -1) times.splice(index, 1);
+            button.closest("li").remove();
+            updateHiddenField();
+        }
+
+        function updateHiddenField() {
+            const entries = [];
+            for (const [date, times] of showDateTimeMap.entries()) {
+                if (times.length === 0) {
+                    entries.push(`${date}`); // Add date without a time
+                } else {
+                    for (const time of times) {
+                        entries.push(`${date}|${time}`);
+                    }
+                }
             }
+            document.getElementById("ShowDateTimeEntries").value = entries.join(',');
         }
 
-        const showtimes = [];
-
-        @if (isEdit && Model.Showtimes != null)
+        @* PRELOAD EXISTING SHOWTIMES IN EDIT MODE *@
+        @if (isEdit && Model.MovieShowDates != null)
         {
-            foreach (var s in Model.Showtimes.OrderBy(s => s.StartTime))
+            foreach (var dateGroup in Model.MovieShowDates.OrderBy(d => d.ShowDate))
             {
-                var day = s.StartTime.DayOfWeek;
-                var time = s.StartTime.ToString("HH:mm");
-                <text>addShowtimeFromServer("@day", "@time");</text>
+                var showDate = dateGroup.ShowDate.ToString("yyyy-MM-dd");
+
+                if (dateGroup.Showtimes == null || !dateGroup.Showtimes.Any())
+                {
+                    <text>
+                                    addDateTimeFromServer("@showDate", "");
+                    </text>
+                }
+                else
+                {
+                    foreach (var time in dateGroup.Showtimes.OrderBy(t => t.StartTime))
+                    {
+                        var startTime = time.StartTime.ToString("HH:mm");
+                        <text>
+                                            addDateTimeFromServer("@showDate", "@startTime");
+                        </text>
+                    }
+                }
             }
         }
 
-        function addShowtimeFromServer(day, time) {
-            const entry = `${day}|${time}`;
-            showtimes.push(entry);
-            document.getElementById("ShowtimeEntries").value = showtimes.join(",");
 
-            const listItem = document.createElement("li");
-            listItem.className = "list-group-item";
+        function addDateTimeFromServer(date, time) {
+            if (!showDateTimeMap.has(date)) {
+                showDateTimeMap.set(date, []);
+                const listItem = document.createElement("li");
+                listItem.className = "list-group-item";
+                listItem.id = `date-${date}`;
+                listItem.innerHTML = `
+                    <strong>${date}</strong>
+                    <button type="button" class="btn btn-sm btn-danger float-end" onclick="removeDate('${date}')">Remove</button>
+                    <ul class="list-group mt-2" id="times-${date}"></ul>`;
+                document.getElementById("dateList").appendChild(listItem);
+            }
 
-            const [hour, minute] = time.split(':');
-            const hour12 = ((+hour % 12) || 12);
-            const formattedTime = `${hour12}:${minute}`;
+            if (!time) {
+                updateHiddenField();
+                return; // ⬅️ Skip appending an empty time
+            }
 
-            listItem.innerHTML = `${day} at ${formattedTime} <button type="button" class="btn btn-sm btn-danger float-end" onclick="removeShowtime('${entry}', this)">Remove</button>`;
-            document.getElementById("showtimeList").appendChild(listItem);
+            const times = showDateTimeMap.get(date);
+            if (!times.includes(time)) {
+                times.push(time);
+                const timeList = document.getElementById(`times-${date}`);
+                const [hour, minute] = time.split(':');
+                const hour12 = ((+hour % 12) || 12);
+                const ampm = +hour >= 12 ? "PM" : "AM";
+                const formattedTime = `${hour12}:${minute} ${ampm}`;
+
+                const listItem = document.createElement("li");
+                listItem.className = "list-group-item";
+                listItem.innerHTML = `${formattedTime}
+                    <button type="button" class="btn btn-sm btn-danger float-end"
+                        onclick="removeTime('${date}', '${time}', this)">Remove</button>`;
+                timeList.appendChild(listItem);
+            }
+
+            updateHiddenField();
         }
+
+
     </script>
+
 }

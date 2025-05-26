@@ -131,33 +131,37 @@ public class AdminController : Controller
 
         return Json(files);
     }
-    // GET: Admin/ManageMovies
     [Authorize(Roles = "Administrator")]
     [HttpGet]
     public IActionResult ManageMovies(string sort = "Status", string dir = "asc", bool showExpired = false)
     {
-        var movies = _context.Movies.Include(m => m.Rating).Include(m => m.Showtimes).ToList();
+        var movies = _context.Movies
+            .Include(m => m.Rating)
+            .Include(m => m.MovieShowDates)
+            .ThenInclude(d => d.Showtimes)
+            .ToList();
 
-        DateTime today = DateTime.Today;
-        DateTime thisFriday = today.AddDays(-((int)today.DayOfWeek + 2) % 7);
-        DateTime twoFridays = thisFriday.AddDays(14);
-
-        if (!showExpired)
-            movies = movies.Where(m => !m.EndShowingDate.HasValue || m.EndShowingDate.Value >= today).ToList();
+        DateOnly today = DateOnly.FromDateTime(DateTime.Today);
+        DateOnly thisFriday = today.AddDays(-((int)today.DayOfWeek + 2) % 7);
+        DateOnly twoFridays = thisFriday.AddDays(14);
 
         string GetMovieStatus(Movie movie)
         {
-            if (movie.EndShowingDate.HasValue && movie.EndShowingDate.Value < today)
+            if (!movie.MovieShowDates.Any())
+                return "Unscheduled";
+
+            var start = movie.MovieShowDates.Min(d => d.ShowDate);
+            var end = movie.MovieShowDates.Max(d => d.ShowDate);
+
+            if (end < today)
                 return "Expired";
-            if (movie.StartShowingDate.HasValue)
-            {
-                if (movie.StartShowingDate.Value <= thisFriday && (!movie.EndShowingDate.HasValue || movie.EndShowingDate >= today))
-                    return "Now Showing";
-                if (movie.StartShowingDate.Value >= thisFriday && movie.StartShowingDate.Value < twoFridays)
-                    return "Next Week";
-                if (movie.StartShowingDate.Value >= twoFridays)
-                    return "Coming Soon";
-            }
+            if (start <= thisFriday && end >= today)
+                return "Now Showing";
+            if (start >= thisFriday && start < twoFridays)
+                return "Next Week";
+            if (start >= twoFridays)
+                return "Coming Soon";
+
             return "Unscheduled";
         }
 
@@ -170,33 +174,41 @@ public class AdminController : Controller
             _ => 4
         };
 
-        var sortedMovies = movies.Select(m => new MovieListing
+        if (!showExpired)
+        {
+            movies = movies
+                .Where(m => m.MovieShowDates.Any(d => d.ShowDate >= today))
+                .ToList();
+        }
+
+        var listings = movies.Select(m => new MovieListing
         {
             Movie = m,
             Status = GetMovieStatus(m)
         });
 
-        sortedMovies = (sort, dir) switch
+        listings = (sort, dir) switch
         {
-            ("Title", "asc") => sortedMovies.OrderBy(m => m.Movie.Title),
-            ("Title", "desc") => sortedMovies.OrderByDescending(m => m.Movie.Title),
-            ("Rating", "asc") => sortedMovies.OrderBy(m => m.Movie.Rating?.Code),
-            ("Rating", "desc") => sortedMovies.OrderByDescending(m => m.Movie.Rating?.Code),
-            ("Runtime", "asc") => sortedMovies.OrderBy(m => m.Movie.runtime),
-            ("Runtime", "desc") => sortedMovies.OrderByDescending(m => m.Movie.runtime),
-            ("Dates", "asc") => sortedMovies.OrderBy(m => m.Movie.StartShowingDate),
-            ("Dates", "desc") => sortedMovies.OrderByDescending(m => m.Movie.StartShowingDate),
-            ("Status", "asc") => sortedMovies.OrderBy(m => GetStatusOrder(m.Status)),
-            ("Status", "desc") => sortedMovies.OrderByDescending(m => GetStatusOrder(m.Status)),
-            _ => sortedMovies.OrderBy(m => GetStatusOrder(m.Status))
+            ("Title", "asc") => listings.OrderBy(m => m.Movie.Title),
+            ("Title", "desc") => listings.OrderByDescending(m => m.Movie.Title),
+            ("Rating", "asc") => listings.OrderBy(m => m.Movie.Rating?.Code),
+            ("Rating", "desc") => listings.OrderByDescending(m => m.Movie.Rating?.Code),
+            ("Runtime", "asc") => listings.OrderBy(m => m.Movie.runtime),
+            ("Runtime", "desc") => listings.OrderByDescending(m => m.Movie.runtime),
+            ("Dates", "asc") => listings.OrderBy(m => m.Movie.MovieShowDates.Min(d => d.ShowDate)),
+            ("Dates", "desc") => listings.OrderByDescending(m => m.Movie.MovieShowDates.Max(d => d.ShowDate)),
+            ("Status", "asc") => listings.OrderBy(m => GetStatusOrder(m.Status)),
+            ("Status", "desc") => listings.OrderByDescending(m => GetStatusOrder(m.Status)),
+            _ => listings.OrderBy(m => GetStatusOrder(m.Status))
         };
 
         ViewBag.Sort = sort;
         ViewBag.Dir = dir;
         ViewBag.ShowExpired = showExpired;
 
-        return View(sortedMovies.ToList());
+        return View(listings.ToList());
     }
+
 
     // GET: Admin/EditMovie
     [HttpGet]

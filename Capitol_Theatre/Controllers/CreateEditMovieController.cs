@@ -17,10 +17,42 @@ namespace Capitol_Theatre.Controllers
     public class CreateEditMovieController : Controller
     {
         private readonly ApplicationDbContext _context;
-
         public CreateEditMovieController(ApplicationDbContext context)
         {
             _context = context;
+        }
+
+        [HttpGet("admin/CreateEditMovie/DeleteMovie")]
+        public IActionResult DeleteMovie(int id)
+        {
+            var movie = _context.Movies
+                .Include(m => m.MovieShowDates)
+                .ThenInclude(d => d.Showtimes)
+                .FirstOrDefault(m => m.Id == id);
+
+            if (movie == null) return NotFound();
+
+            _context.Movies.Remove(movie);
+            _context.SaveChanges();
+
+            return RedirectToAction("ManageMovies", "Admin");
+        }
+
+        [HttpPost("admin/CreateEditMovie/DeleteMovieConfirmed")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteMovieConfirmed(int id)
+        {
+            var movie = await _context.Movies
+                .Include(m => m.MovieShowDates)
+                .ThenInclude(d => d.Showtimes)
+                .FirstOrDefaultAsync(m => m.Id == id);
+
+            if (movie == null) return NotFound();
+
+            _context.Movies.Remove(movie);
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction("ManageMovies", "Admin");
         }
 
         [HttpGet]
@@ -30,14 +62,17 @@ namespace Capitol_Theatre.Controllers
                 return BadRequest("Invalid mode.");
 
             Movie model = new Movie();
+
             if (mode.Equals("Edit", StringComparison.OrdinalIgnoreCase))
             {
-                if (!id.HasValue)
-                    return BadRequest("Movie ID is required for edit mode.");
+                if (!id.HasValue) return BadRequest("Movie ID is required for edit mode.");
 
-                model = _context.Movies.Include(m => m.Showtimes).FirstOrDefault(m => m.Id == id.Value);
-                if (model == null)
-                    return NotFound();
+                model = _context.Movies
+                    .Include(m => m.MovieShowDates)
+                        .ThenInclude(d => d.Showtimes)
+                    .FirstOrDefault(m => m.Id == id.Value);
+
+                if (model == null) return NotFound();
             }
 
             ViewBag.Mode = mode;
@@ -52,21 +87,9 @@ namespace Capitol_Theatre.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Administrator")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Index(string mode, Movie model, string? ShowtimeEntries)
+        public async Task<IActionResult> Index(string mode, Movie model, [FromForm] string ShowDateTimeEntries)
         {
-            if (string.IsNullOrEmpty(mode) || !(mode.Equals("Create", StringComparison.OrdinalIgnoreCase) || mode.Equals("Edit", StringComparison.OrdinalIgnoreCase)))
-                return BadRequest("Invalid mode.");
-
-            ModelState.Remove(nameof(ShowtimeEntries));
-
-            // Poster is already uploaded separately by JavaScript, just verify PosterPath
-            if (string.IsNullOrWhiteSpace(model.PosterPath))
-            {
-                ModelState.AddModelError("PosterPath", "Please upload or select a poster image.");
-            }
-
             if (!ModelState.IsValid)
             {
                 ViewBag.Mode = mode;
@@ -80,98 +103,104 @@ namespace Capitol_Theatre.Controllers
                 return View("CreateEditMovie", model);
             }
 
+            var parsedShowDates = ParseShowDateTimeEntries(ShowDateTimeEntries);
+
+            // Calculate current Friday–Thursday range
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            int daysToFriday = ((int)DayOfWeek.Friday - (int)today.DayOfWeek + 7) % 7;
+            var thisFriday = today.AddDays(-((int)today.DayOfWeek + 2) % 7); // Friday of this week
+            var nextThursday = thisFriday.AddDays(6);
+
+            bool hasAnyDatesThisWeek = parsedShowDates.Any(d =>
+                d.ShowDate >= thisFriday && d.ShowDate <= nextThursday);
+
+            bool anyThisWeekDatesMissingShowtimes = parsedShowDates
+            .Where(d => d.ShowDate >= thisFriday && d.ShowDate <= nextThursday)
+            .Any(d => d.Showtimes == null || !d.Showtimes.Any());
+
+
+            if (hasAnyDatesThisWeek && anyThisWeekDatesMissingShowtimes)
+            {
+                ModelState.AddModelError("", "Movies scheduled for this week must include at least one showtime.");
+
+                model.MovieShowDates = parsedShowDates; // ✅ Restore parsed dates and times
+
+                ViewBag.Mode = mode;
+                ViewBag.Ratings = new SelectList(_context.Ratings, "Id", "Code", model.RatingId);
+
+                var posterDir = Path.Combine("wwwroot", "Images", "posters");
+                ViewBag.Posters = Directory.Exists(posterDir)
+                    ? Directory.GetFiles(posterDir).Select(p => "/Images/posters/" + Path.GetFileName(p)).ToList()
+                    : new List<string>();
+
+                return View("CreateEditMovie", model); // 🔁 Send full model back to repopulate UI
+            }
+
+
+
             if (mode.Equals("Create", StringComparison.OrdinalIgnoreCase))
             {
-                model.Showtimes ??= new List<Showtime>();
-
-                if (model.StartShowingDate.HasValue && model.EndShowingDate.HasValue)
-                    model.RunLength = (model.EndShowingDate.Value - model.StartShowingDate.Value).Days;
-
+                model.MovieShowDates = parsedShowDates;
                 _context.Movies.Add(model);
             }
             else if (mode.Equals("Edit", StringComparison.OrdinalIgnoreCase))
             {
-                var movie = _context.Movies.Include(m => m.Showtimes).FirstOrDefault(m => m.Id == model.Id);
+                var movie = _context.Movies
+                    .Include(m => m.MovieShowDates)
+                        .ThenInclude(msd => msd.Showtimes)
+                    .FirstOrDefault(m => m.Id == model.Id);
+
                 if (movie == null) return NotFound();
 
                 movie.Title = model.Title;
                 movie.Description = model.Description;
                 movie.RatingId = model.RatingId;
-                movie.TrailerUrl = model.TrailerUrl;
                 movie.runtime = model.runtime;
-                movie.StartShowingDate = model.StartShowingDate;
-                movie.EndShowingDate = model.EndShowingDate;
                 movie.Warning = model.Warning;
                 movie.WarningColor = model.WarningColor;
+                movie.TrailerUrl = model.TrailerUrl;
+                if (!string.IsNullOrEmpty(model.PosterPath)) movie.PosterPath = model.PosterPath;
 
-                if (model.StartShowingDate.HasValue && model.EndShowingDate.HasValue)
-                    movie.RunLength = (model.EndShowingDate.Value - model.StartShowingDate.Value).Days;
-
-                if (!string.IsNullOrEmpty(model.PosterPath))
-                    movie.PosterPath = model.PosterPath;
-
-                if (movie.Showtimes != null && movie.Showtimes.Any())
-                    _context.Showtimes.RemoveRange(movie.Showtimes);
-
-                var parsedShowtimes = new List<Showtime>();
-                if (!string.IsNullOrEmpty(ShowtimeEntries) && movie.StartShowingDate.HasValue && movie.EndShowingDate.HasValue)
-                {
-                    var showtimeParts = ShowtimeEntries.Split(',', StringSplitOptions.RemoveEmptyEntries);
-                    foreach (var entry in showtimeParts)
-                    {
-                        var split = entry.Split('|');
-                        if (split.Length != 2) continue;
-
-                        if (Enum.TryParse<DayOfWeek>(split[0], out var day) &&
-                            TimeSpan.TryParse(split[1], out var time))
-                        {
-                            for (var d = movie.StartShowingDate.Value; d <= movie.EndShowingDate.Value; d = d.AddDays(1))
-                            {
-                                if (d.DayOfWeek == day)
-                                {
-                                    parsedShowtimes.Add(new Showtime
-                                    {
-                                        MovieId = movie.Id,
-                                        StartTime = d.Date + time
-                                    });
-                                }
-                            }
-                        }
-                    }
-                }
-
-                movie.Showtimes = parsedShowtimes;
+                _context.MovieShowDates.RemoveRange(movie.MovieShowDates);
+                movie.MovieShowDates = parsedShowDates;
             }
 
             await _context.SaveChangesAsync();
             return RedirectToAction("ManageMovies", "Admin");
         }
 
-        [Authorize(Roles = "Administrator")]
-        [HttpGet("admin/CreateEditMovie/DeleteMovie")]
-        public IActionResult DeleteMovie(int id)
+
+
+        private List<MovieShowDate> ParseShowDateTimeEntries(string entries)
         {
-            var movie = _context.Movies.FirstOrDefault(m => m.Id == id);
-            if (movie == null) return NotFound();
+            var result = new Dictionary<DateOnly, MovieShowDate>();
 
-            _context.Movies.Remove(movie);
-            _context.SaveChanges();
+            if (string.IsNullOrWhiteSpace(entries)) return result.Values.ToList();
 
-            return RedirectToAction("ManageMovies", "Admin");
+            var parts = entries.Split(',', StringSplitOptions.RemoveEmptyEntries);
+            foreach (var part in parts)
+            {
+                var tokens = part.Split('|');
+                if (tokens.Length == 0) continue;
+
+                if (!DateOnly.TryParse(tokens[0], out var date)) continue;
+
+                if (!result.TryGetValue(date, out var msd))
+                {
+                    msd = new MovieShowDate { ShowDate = date };
+                    result[date] = msd;
+                }
+
+                if (tokens.Length == 2 && TimeOnly.TryParse(tokens[1], out var time))
+                {
+                    msd.Showtimes.Add(new Showtime { StartTime = time });
+                }
+            }
+
+            return result.Values.ToList();
         }
 
-        [Authorize(Roles = "Administrator")]
-        [HttpPost("admin/CreateEditMovie/DeleteMovieConfirmed")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteMovieConfirmed(int id)
-        {
-            var movie = await _context.Movies.FindAsync(id);
-            if (movie == null) return NotFound();
 
-            _context.Movies.Remove(movie);
-            await _context.SaveChangesAsync();
 
-            return RedirectToAction("ManageMovies", "Admin");
-        }
     }
 }

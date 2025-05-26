@@ -47,9 +47,17 @@
                     <td>@item.Movie.Rating?.Code</td>
                     <td>@(item.Movie.runtime ?? 0) mins</td>
                     <td>
-                        @item.Movie.StartShowingDate?.ToShortDateString()
-                        -
-                        @item.Movie.EndShowingDate?.ToShortDateString()
+                        @{
+                            var dates = item.Movie.MovieShowDates?.Select(d => d.ShowDate).OrderBy(d => d).ToList();
+                            if (dates != null && dates.Any())
+                            {
+                                <text>@dates.First().ToShortDateString() - @dates.Last().ToShortDateString()</text>
+                            }
+                            else
+                            {
+                                <text>—</text>
+                            }
+                        }
                     </td>
                     <td>
                         <a asp-controller="CreateEditMovie" asp-action="Index" asp-route-mode="Edit" asp-route-id="@item.Movie.Id" class="btn btn-sm btn-warning">Edit</a>

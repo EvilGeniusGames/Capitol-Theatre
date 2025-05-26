@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Capitol_Theatre.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialBuild : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -95,6 +95,40 @@ namespace Capitol_Theatre.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Ratings", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SiteSettings",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    IconUrl = table.Column<string>(type: "TEXT", nullable: false),
+                    BackgroundImageUrl = table.Column<string>(type: "TEXT", nullable: false),
+                    BackgroundImageAlignment = table.Column<string>(type: "TEXT", nullable: false),
+                    BackgroundImageTiled = table.Column<bool>(type: "INTEGER", nullable: false),
+                    BackgroundColor = table.Column<string>(type: "TEXT", nullable: false),
+                    FontColor = table.Column<string>(type: "TEXT", nullable: false),
+                    CardBackgroundColor = table.Column<string>(type: "TEXT", nullable: false),
+                    LastUpdated = table.Column<DateTime>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SiteSettings", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SocialMediaTypes",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Name = table.Column<string>(type: "TEXT", nullable: false),
+                    FontAwesomeClass = table.Column<string>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SocialMediaTypes", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -217,8 +251,6 @@ namespace Capitol_Theatre.Migrations
                     WarningColor = table.Column<string>(type: "TEXT", nullable: true),
                     TrailerUrl = table.Column<string>(type: "TEXT", nullable: true),
                     runtime = table.Column<int>(type: "INTEGER", nullable: true),
-                    StartShowingDate = table.Column<DateTime>(type: "TEXT", nullable: true),
-                    EndShowingDate = table.Column<DateTime>(type: "TEXT", nullable: true),
                     RunLength = table.Column<int>(type: "INTEGER", nullable: true)
                 },
                 constraints: table =>
@@ -233,19 +265,46 @@ namespace Capitol_Theatre.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "RecurringShowtimeRules",
+                name: "SocialMediaLinks",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    SocialMediaTypeId = table.Column<int>(type: "INTEGER", nullable: false),
+                    Url = table.Column<string>(type: "TEXT", nullable: false),
+                    IconColor = table.Column<string>(type: "TEXT", nullable: false),
+                    SiteSettingsId = table.Column<int>(type: "INTEGER", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SocialMediaLinks", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_SocialMediaLinks_SiteSettings_SiteSettingsId",
+                        column: x => x.SiteSettingsId,
+                        principalTable: "SiteSettings",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_SocialMediaLinks_SocialMediaTypes_SocialMediaTypeId",
+                        column: x => x.SocialMediaTypeId,
+                        principalTable: "SocialMediaTypes",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "MovieShowDates",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     MovieId = table.Column<int>(type: "INTEGER", nullable: false),
-                    TimeOfDay = table.Column<TimeSpan>(type: "TEXT", nullable: false)
+                    ShowDate = table.Column<DateOnly>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_RecurringShowtimeRules", x => x.Id);
+                    table.PrimaryKey("PK_MovieShowDates", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_RecurringShowtimeRules_Movies_MovieId",
+                        name: "FK_MovieShowDates_Movies_MovieId",
                         column: x => x.MovieId,
                         principalTable: "Movies",
                         principalColumn: "Id",
@@ -258,36 +317,16 @@ namespace Capitol_Theatre.Migrations
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
-                    StartTime = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    MovieId = table.Column<int>(type: "INTEGER", nullable: false)
+                    StartTime = table.Column<TimeOnly>(type: "TEXT", nullable: false),
+                    MovieShowDateId = table.Column<int>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Showtimes", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Showtimes_Movies_MovieId",
-                        column: x => x.MovieId,
-                        principalTable: "Movies",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "DayOfWeekRules",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    Day = table.Column<int>(type: "INTEGER", nullable: false),
-                    RecurringShowtimeRuleId = table.Column<int>(type: "INTEGER", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_DayOfWeekRules", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_DayOfWeekRules_RecurringShowtimeRules_RecurringShowtimeRuleId",
-                        column: x => x.RecurringShowtimeRuleId,
-                        principalTable: "RecurringShowtimeRules",
+                        name: "FK_Showtimes_MovieShowDates_MovieShowDateId",
+                        column: x => x.MovieShowDateId,
+                        principalTable: "MovieShowDates",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -314,6 +353,26 @@ namespace Capitol_Theatre.Migrations
                     { 3, "14A", "Suitable for viewing by persons 14 years of age or older. Persons under 14 must be accompanied by an adult. May contain violence, coarse language, and/or sexually suggestive scenes." },
                     { 4, "18A", "Suitable for viewing by persons 18 years of age or older. Persons 14 - 17 must be accompanied by an adult. No Admittance to persons under 14. May contain explicit violence, frequent coarse language, sexual activity and/or horror." },
                     { 5, "R", "Admittance restricted to persons 18 and older. Content not suitable for minors. Contains frequent sexual activity, brutal/graphic violence, intense horror and/or disturbing content." }
+                });
+
+            migrationBuilder.InsertData(
+                table: "SiteSettings",
+                columns: new[] { "Id", "BackgroundColor", "BackgroundImageAlignment", "BackgroundImageTiled", "BackgroundImageUrl", "CardBackgroundColor", "FontColor", "IconUrl", "LastUpdated" },
+                values: new object[] { 1, "#ffffff", "left", false, "", "#ffffff", "#000000", "", new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) });
+
+            migrationBuilder.InsertData(
+                table: "SocialMediaTypes",
+                columns: new[] { "Id", "FontAwesomeClass", "Name" },
+                values: new object[,]
+                {
+                    { 1, "fab fa-facebook-square", "Facebook" },
+                    { 2, "fab fa-instagram", "Instagram" },
+                    { 3, "fab fa-youtube-square", "YouTube" },
+                    { 4, "fab fa-twitter-square", "Twitter/X" },
+                    { 5, "fab fa-linkedin", "LinkedIn" },
+                    { 6, "fab fa-tiktok", "TikTok" },
+                    { 7, "fab fa-pinterest-square", "Pinterest" },
+                    { 8, "fas fa-globe", "Bluesky" }
                 });
 
             migrationBuilder.CreateIndex(
@@ -354,24 +413,29 @@ namespace Capitol_Theatre.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_DayOfWeekRules_RecurringShowtimeRuleId",
-                table: "DayOfWeekRules",
-                column: "RecurringShowtimeRuleId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Movies_RatingId",
                 table: "Movies",
                 column: "RatingId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_RecurringShowtimeRules_MovieId",
-                table: "RecurringShowtimeRules",
+                name: "IX_MovieShowDates_MovieId",
+                table: "MovieShowDates",
                 column: "MovieId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Showtimes_MovieId",
+                name: "IX_Showtimes_MovieShowDateId",
                 table: "Showtimes",
-                column: "MovieId");
+                column: "MovieShowDateId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SocialMediaLinks_SiteSettingsId",
+                table: "SocialMediaLinks",
+                column: "SiteSettingsId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SocialMediaLinks_SocialMediaTypeId",
+                table: "SocialMediaLinks",
+                column: "SocialMediaTypeId");
         }
 
         /// <inheritdoc />
@@ -393,9 +457,6 @@ namespace Capitol_Theatre.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
-                name: "DayOfWeekRules");
-
-            migrationBuilder.DropTable(
                 name: "Notices");
 
             migrationBuilder.DropTable(
@@ -405,13 +466,22 @@ namespace Capitol_Theatre.Migrations
                 name: "Showtimes");
 
             migrationBuilder.DropTable(
+                name: "SocialMediaLinks");
+
+            migrationBuilder.DropTable(
                 name: "AspNetRoles");
 
             migrationBuilder.DropTable(
                 name: "AspNetUsers");
 
             migrationBuilder.DropTable(
-                name: "RecurringShowtimeRules");
+                name: "MovieShowDates");
+
+            migrationBuilder.DropTable(
+                name: "SiteSettings");
+
+            migrationBuilder.DropTable(
+                name: "SocialMediaTypes");
 
             migrationBuilder.DropTable(
                 name: "Movies");

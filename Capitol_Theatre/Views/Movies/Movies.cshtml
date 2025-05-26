@@ -1,24 +1,21 @@
 ﻿@model IEnumerable<Capitol_Theatre.Data.Movie>
 @inject Capitol_Theatre.Services.ISiteSettingsService SiteSettingsService
+
 @{
     var siteSettings = SiteSettingsService.GetSettings();
-}
-@{
-    var mode = ViewData["Mode"]?.ToString() ?? "nowshowing";
+    var mode = ViewData["Mode"]?.ToString()?.ToLowerInvariant() ?? "nowshowing";
     var title = ViewData["Title"]?.ToString() ?? "Movies";
 
     var today = DateTime.Today;
-    // var start = today.AddDays(-((int)today.DayOfWeek + 2) % 7);
-    // var end = start.AddDays(6);
     DateTime start, end;
 
-    if (mode.Equals("nextweek", StringComparison.OrdinalIgnoreCase))
+    if (mode == "nextweek")
     {
-        start = today.AddDays(7 - ((int)today.DayOfWeek + 2) % 7); // Next Friday
+        start = today.AddDays(7 - ((int)today.DayOfWeek + 2) % 7);
     }
     else
     {
-        start = today.AddDays(-((int)today.DayOfWeek + 2) % 7); // This Friday
+        start = today.AddDays(-((int)today.DayOfWeek + 2) % 7);
     }
 
     end = start.AddDays(6);
@@ -28,20 +25,37 @@
 <div class="container py-4">
     <h2 class="mb-1">@title</h2>
 
-    @if (mode.Equals("nowshowing", StringComparison.OrdinalIgnoreCase) || mode.Equals("nextweek", StringComparison.OrdinalIgnoreCase))
+    @if (mode == "nowshowing" || mode == "nextweek")
     {
         <h5 class="text-muted mb-4">Fri @start.ToString("MMMM d") to Thurs @end.ToString("MMMM d")</h5>
     }
-    else if (mode.Equals("comingsoon", StringComparison.OrdinalIgnoreCase))
+    else if (mode == "comingsoon")
     {
         <h5 class="text-muted mb-4">After @nextFriday.ToString("MMMM d")</h5>
     }
 
+
     <div class="d-flex flex-wrap gap-4 justify-content-center justify-content-md-start">
         @foreach (var movie in Model)
         {
-            <div class="card shadow-sm" style="width: 24rem; background-color: @siteSettings.CardBackgroundColor;">
+            var allShowtimes = movie.MovieShowDates?
+            .SelectMany(d => d.Showtimes.Select(s => new { d.ShowDate, s.StartTime }))
+            .ToList() ?? new();
 
+            var matinees = allShowtimes
+            .Where(x => x.StartTime.Hour < 17)
+            .GroupBy(x => x.StartTime)
+            .Select(g => g.Key.ToString("h:mm tt"))
+            .ToList();
+
+            var evenings = allShowtimes
+            .Where(x => x.StartTime.Hour >= 17)
+            .GroupBy(x => x.StartTime)
+            .Select(g => g.Key.ToString("h:mm tt"))
+            .ToList();
+
+            var lastShowDate = movie.MovieShowDates?.Max(d => d.ShowDate);
+            <div class="card shadow-sm" style="width: 24rem; background-color: @siteSettings.CardBackgroundColor;">
                 <div class="poster-container" data-trailer="@movie.TrailerUrl" onclick="handlePosterClick(this)">
                     <img src="@movie.PosterPath" class="card-img-top img-fluid" alt="@movie.Title Poster">
                     @if (!string.IsNullOrWhiteSpace(movie.Description))
@@ -56,35 +70,37 @@
                     }
                 </div>
 
-                <div class="card-body background-color: @siteSettings.CardBackgroundColor;">
-                    <h5 class="card-title">@movie.Title</h5>
+                <div class="card-body" style="background-color: @siteSettings.CardBackgroundColor;">
+                    <h4 class="card-title fw-semibold">@movie.Title</h4>
 
-                    @if (movie.Showtimes != null && movie.Showtimes.Any())
+                    @if (evenings.Any())
                     {
-                        <p class="card-text mb-1 fs-6">
-                            @Html.Raw(movie.GetFormattedShowtimes().Replace("\n", "<br/>"))
-                        </p>
+                        <p class="mb-1"><strong>Showtimes:</strong> Fri–Thu @evenings.First()</p>
                     }
 
-                    @if (movie.EndShowingDate.HasValue)
+                    @if (matinees.Any())
                     {
-                        <p class="card-text mb-1">
-                            <strong>Last Showing:</strong> @movie.EndShowingDate.Value.ToString("dddd MMMM d")
-                        </p>
+                        <p class="mb-1"><strong>Matinées:</strong> Sat–Sun @matinees.First()</p>
                     }
+
+                    @if ((mode == "nowshowing") && lastShowDate.HasValue)
+                    {
+                        <p class="mb-1"><strong>Last Showing:</strong> @lastShowDate.Value.ToString("dddd MMM d")</p>
+                    }
+
+
                     @if (movie.runtime.HasValue)
                     {
-                        var hours = movie.runtime.Value / 60;
-                        var minutes = movie.runtime.Value % 60;
-                        <p class="card-text mb-1">
-                            <strong>Runtime:</strong> @($"{hours}h {minutes}m")
-                        </p>
+                        var h = movie.runtime.Value / 60;
+                        var m = movie.runtime.Value % 60;
+                        <p class="mb-1"><strong>Runtime:</strong> @($"{h}h {m}m")</p>
                     }
-                    <p class="card-text">
+
+                    <p class="mb-0">
                         <strong>Rating:</strong> @movie.Rating?.Code
                         @if (!string.IsNullOrWhiteSpace(movie.Warning))
                         {
-                            <span style="color:@movie.WarningColor"> - @movie.Warning</span>
+                            <span style="color:@movie.WarningColor"> – @movie.Warning</span>
                         }
                     </p>
                 </div>
@@ -113,16 +129,12 @@
                 return;
             }
 
-            // First tap: show overlay and set flag
             document.querySelectorAll('.poster-container').forEach(c => c.dataset.clicked = "false");
             document.querySelectorAll('.poster-overlay').forEach(o => o.classList.remove('active'));
 
             container.dataset.clicked = "true";
             overlay.classList.add('active');
         }
-
-
-
 
         document.addEventListener('DOMContentLoaded', function () {
             document.querySelectorAll('.poster-container').forEach(container => {
@@ -142,4 +154,3 @@
         });
     </script>
 }
-

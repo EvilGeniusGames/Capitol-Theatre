@@ -11,33 +11,14 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Capitol_Theatre.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250426213752_InitialBuild")]
-    partial class InitialBuild
+    [Migration("20250526202514_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.4");
-
-            modelBuilder.Entity("Capitol_Theatre.Data.DayOfWeekRule", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Day")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("RecurringShowtimeRuleId")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RecurringShowtimeRuleId");
-
-                    b.ToTable("DayOfWeekRules");
-                });
 
             modelBuilder.Entity("Capitol_Theatre.Data.Movie", b =>
                 {
@@ -49,9 +30,6 @@ namespace Capitol_Theatre.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTime?>("EndShowingDate")
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("PosterPath")
                         .HasColumnType("TEXT");
 
@@ -60,9 +38,6 @@ namespace Capitol_Theatre.Migrations
 
                     b.Property<int?>("RunLength")
                         .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("StartShowingDate")
-                        .HasColumnType("TEXT");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -85,6 +60,25 @@ namespace Capitol_Theatre.Migrations
                     b.HasIndex("RatingId");
 
                     b.ToTable("Movies");
+                });
+
+            modelBuilder.Entity("Capitol_Theatre.Data.MovieShowDate", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("MovieId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateOnly>("ShowDate")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MovieId");
+
+                    b.ToTable("MovieShowDates");
                 });
 
             modelBuilder.Entity("Capitol_Theatre.Data.Notice", b =>
@@ -222,42 +216,176 @@ namespace Capitol_Theatre.Migrations
                         });
                 });
 
-            modelBuilder.Entity("Capitol_Theatre.Data.RecurringShowtimeRule", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("MovieId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<TimeSpan>("TimeOfDay")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("MovieId");
-
-                    b.ToTable("RecurringShowtimeRules");
-                });
-
             modelBuilder.Entity("Capitol_Theatre.Data.Showtime", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("MovieId")
+                    b.Property<int>("MovieShowDateId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<DateTime>("StartTime")
+                    b.Property<TimeOnly>("StartTime")
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("MovieId");
+                    b.HasIndex("MovieShowDateId");
 
                     b.ToTable("Showtimes");
+                });
+
+            modelBuilder.Entity("Capitol_Theatre.Data.SiteSettings", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("BackgroundColor")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BackgroundImageAlignment")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("BackgroundImageTiled")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("BackgroundImageUrl")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CardBackgroundColor")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FontColor")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("IconUrl")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("LastUpdated")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SiteSettings");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            BackgroundColor = "#ffffff",
+                            BackgroundImageAlignment = "left",
+                            BackgroundImageTiled = false,
+                            BackgroundImageUrl = "",
+                            CardBackgroundColor = "#ffffff",
+                            FontColor = "#000000",
+                            IconUrl = "",
+                            LastUpdated = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                        });
+                });
+
+            modelBuilder.Entity("Capitol_Theatre.Data.SocialMediaLink", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("IconColor")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("SiteSettingsId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("SocialMediaTypeId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SiteSettingsId");
+
+                    b.HasIndex("SocialMediaTypeId");
+
+                    b.ToTable("SocialMediaLinks");
+                });
+
+            modelBuilder.Entity("Capitol_Theatre.Data.SocialMediaType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("FontAwesomeClass")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SocialMediaTypes");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            FontAwesomeClass = "fab fa-facebook-square",
+                            Name = "Facebook"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            FontAwesomeClass = "fab fa-instagram",
+                            Name = "Instagram"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            FontAwesomeClass = "fab fa-youtube-square",
+                            Name = "YouTube"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            FontAwesomeClass = "fab fa-twitter-square",
+                            Name = "Twitter/X"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            FontAwesomeClass = "fab fa-linkedin",
+                            Name = "LinkedIn"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            FontAwesomeClass = "fab fa-tiktok",
+                            Name = "TikTok"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            FontAwesomeClass = "fab fa-pinterest-square",
+                            Name = "Pinterest"
+                        },
+                        new
+                        {
+                            Id = 8,
+                            FontAwesomeClass = "fas fa-globe",
+                            Name = "Bluesky"
+                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -452,15 +580,6 @@ namespace Capitol_Theatre.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("Capitol_Theatre.Data.DayOfWeekRule", b =>
-                {
-                    b.HasOne("Capitol_Theatre.Data.RecurringShowtimeRule", null)
-                        .WithMany("Days")
-                        .HasForeignKey("RecurringShowtimeRuleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("Capitol_Theatre.Data.Movie", b =>
                 {
                     b.HasOne("Capitol_Theatre.Data.Rating", "Rating")
@@ -472,10 +591,10 @@ namespace Capitol_Theatre.Migrations
                     b.Navigation("Rating");
                 });
 
-            modelBuilder.Entity("Capitol_Theatre.Data.RecurringShowtimeRule", b =>
+            modelBuilder.Entity("Capitol_Theatre.Data.MovieShowDate", b =>
                 {
                     b.HasOne("Capitol_Theatre.Data.Movie", "Movie")
-                        .WithMany()
+                        .WithMany("MovieShowDates")
                         .HasForeignKey("MovieId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -485,11 +604,28 @@ namespace Capitol_Theatre.Migrations
 
             modelBuilder.Entity("Capitol_Theatre.Data.Showtime", b =>
                 {
-                    b.HasOne("Capitol_Theatre.Data.Movie", null)
+                    b.HasOne("Capitol_Theatre.Data.MovieShowDate", "MovieShowDate")
                         .WithMany("Showtimes")
-                        .HasForeignKey("MovieId")
+                        .HasForeignKey("MovieShowDateId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("MovieShowDate");
+                });
+
+            modelBuilder.Entity("Capitol_Theatre.Data.SocialMediaLink", b =>
+                {
+                    b.HasOne("Capitol_Theatre.Data.SiteSettings", null)
+                        .WithMany("SocialMediaLinks")
+                        .HasForeignKey("SiteSettingsId");
+
+                    b.HasOne("Capitol_Theatre.Data.SocialMediaType", "SocialMediaType")
+                        .WithMany()
+                        .HasForeignKey("SocialMediaTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("SocialMediaType");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -545,12 +681,17 @@ namespace Capitol_Theatre.Migrations
 
             modelBuilder.Entity("Capitol_Theatre.Data.Movie", b =>
                 {
+                    b.Navigation("MovieShowDates");
+                });
+
+            modelBuilder.Entity("Capitol_Theatre.Data.MovieShowDate", b =>
+                {
                     b.Navigation("Showtimes");
                 });
 
-            modelBuilder.Entity("Capitol_Theatre.Data.RecurringShowtimeRule", b =>
+            modelBuilder.Entity("Capitol_Theatre.Data.SiteSettings", b =>
                 {
-                    b.Navigation("Days");
+                    b.Navigation("SocialMediaLinks");
                 });
 #pragma warning restore 612, 618
         }

@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Capitol_Theatre.Data;
 using System;
+using System.Linq;
 
 namespace Capitol_Theatre.Controllers
 {
@@ -14,33 +15,31 @@ namespace Capitol_Theatre.Controllers
             _context = context;
         }
 
-        [HttpGet("/Movies/Listing/{mode}")]
+        [HttpGet("/Movies/Listing")]
         public IActionResult Listing(string mode)
         {
-            if (string.IsNullOrWhiteSpace(mode))
-                return NotFound();
+            if (string.IsNullOrWhiteSpace(mode)) return NotFound();
 
             var today = DateTime.Today;
-            DateTime? start = null;
-            DateTime? end = null;
+            DateOnly startDate, endDate = DateOnly.MaxValue;
             string title;
 
             switch (mode.ToLowerInvariant())
             {
                 case "nowshowing":
-                    start = today.AddDays(-((int)today.DayOfWeek + 2) % 7); // Previous Friday
-                    end = start.Value.AddDays(6); // Following Thursday
+                    startDate = DateOnly.FromDateTime(today.AddDays(-((int)today.DayOfWeek + 2) % 7));
+                    endDate = startDate.AddDays(6);
                     title = "Now Showing";
                     break;
 
                 case "nextweek":
-                    start = today.AddDays(7 - ((int)today.DayOfWeek + 2) % 7); // Next Friday
-                    end = start.Value.AddDays(6);
+                    startDate = DateOnly.FromDateTime(today.AddDays(7 - ((int)today.DayOfWeek + 2) % 7));
+                    endDate = startDate.AddDays(6);
                     title = "Next Week";
                     break;
 
                 case "comingsoon":
-                    start = today.AddDays(14 - ((int)today.DayOfWeek + 2) % 7); // Two Fridays ahead
+                    startDate = DateOnly.FromDateTime(today.AddDays(14 - ((int)today.DayOfWeek + 2) % 7));
                     title = "Coming Soon";
                     break;
 
@@ -50,17 +49,19 @@ namespace Capitol_Theatre.Controllers
 
             IQueryable<Movie> query = _context.Movies
                 .Include(m => m.Rating)
-                .Include(m => m.Showtimes);
+                .Include(m => m.MovieShowDates)
+                    .ThenInclude(d => d.Showtimes);
 
             if (mode.Equals("comingsoon", StringComparison.OrdinalIgnoreCase))
             {
-                query = query.Where(m => m.StartShowingDate.HasValue && m.StartShowingDate > start);
+                query = query.Where(m =>
+                    m.MovieShowDates.Any(d => d.ShowDate > startDate));
             }
             else
             {
                 query = query.Where(m =>
-                    (!m.StartShowingDate.HasValue || m.StartShowingDate <= end) &&
-                    (!m.EndShowingDate.HasValue || m.EndShowingDate >= start));
+                    m.MovieShowDates.Any(d =>
+                        d.ShowDate >= startDate && d.ShowDate <= endDate));
             }
 
             var movies = query.ToList();

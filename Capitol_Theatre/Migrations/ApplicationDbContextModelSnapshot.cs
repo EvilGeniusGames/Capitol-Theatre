@@ -17,25 +17,6 @@ namespace Capitol_Theatre.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.4");
 
-            modelBuilder.Entity("Capitol_Theatre.Data.DayOfWeekRule", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Day")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("RecurringShowtimeRuleId")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RecurringShowtimeRuleId");
-
-                    b.ToTable("DayOfWeekRules");
-                });
-
             modelBuilder.Entity("Capitol_Theatre.Data.Movie", b =>
                 {
                     b.Property<int>("Id")
@@ -46,9 +27,6 @@ namespace Capitol_Theatre.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTime?>("EndShowingDate")
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("PosterPath")
                         .HasColumnType("TEXT");
 
@@ -57,9 +35,6 @@ namespace Capitol_Theatre.Migrations
 
                     b.Property<int?>("RunLength")
                         .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("StartShowingDate")
-                        .HasColumnType("TEXT");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -82,6 +57,25 @@ namespace Capitol_Theatre.Migrations
                     b.HasIndex("RatingId");
 
                     b.ToTable("Movies");
+                });
+
+            modelBuilder.Entity("Capitol_Theatre.Data.MovieShowDate", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("MovieId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateOnly>("ShowDate")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MovieId");
+
+                    b.ToTable("MovieShowDates");
                 });
 
             modelBuilder.Entity("Capitol_Theatre.Data.Notice", b =>
@@ -219,40 +213,21 @@ namespace Capitol_Theatre.Migrations
                         });
                 });
 
-            modelBuilder.Entity("Capitol_Theatre.Data.RecurringShowtimeRule", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("MovieId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<TimeSpan>("TimeOfDay")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("MovieId");
-
-                    b.ToTable("RecurringShowtimeRules");
-                });
-
             modelBuilder.Entity("Capitol_Theatre.Data.Showtime", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("MovieId")
+                    b.Property<int>("MovieShowDateId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<DateTime>("StartTime")
+                    b.Property<TimeOnly>("StartTime")
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("MovieId");
+                    b.HasIndex("MovieShowDateId");
 
                     b.ToTable("Showtimes");
                 });
@@ -602,15 +577,6 @@ namespace Capitol_Theatre.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("Capitol_Theatre.Data.DayOfWeekRule", b =>
-                {
-                    b.HasOne("Capitol_Theatre.Data.RecurringShowtimeRule", null)
-                        .WithMany("Days")
-                        .HasForeignKey("RecurringShowtimeRuleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("Capitol_Theatre.Data.Movie", b =>
                 {
                     b.HasOne("Capitol_Theatre.Data.Rating", "Rating")
@@ -622,10 +588,10 @@ namespace Capitol_Theatre.Migrations
                     b.Navigation("Rating");
                 });
 
-            modelBuilder.Entity("Capitol_Theatre.Data.RecurringShowtimeRule", b =>
+            modelBuilder.Entity("Capitol_Theatre.Data.MovieShowDate", b =>
                 {
                     b.HasOne("Capitol_Theatre.Data.Movie", "Movie")
-                        .WithMany()
+                        .WithMany("MovieShowDates")
                         .HasForeignKey("MovieId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -635,11 +601,13 @@ namespace Capitol_Theatre.Migrations
 
             modelBuilder.Entity("Capitol_Theatre.Data.Showtime", b =>
                 {
-                    b.HasOne("Capitol_Theatre.Data.Movie", null)
+                    b.HasOne("Capitol_Theatre.Data.MovieShowDate", "MovieShowDate")
                         .WithMany("Showtimes")
-                        .HasForeignKey("MovieId")
+                        .HasForeignKey("MovieShowDateId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("MovieShowDate");
                 });
 
             modelBuilder.Entity("Capitol_Theatre.Data.SocialMediaLink", b =>
@@ -710,12 +678,12 @@ namespace Capitol_Theatre.Migrations
 
             modelBuilder.Entity("Capitol_Theatre.Data.Movie", b =>
                 {
-                    b.Navigation("Showtimes");
+                    b.Navigation("MovieShowDates");
                 });
 
-            modelBuilder.Entity("Capitol_Theatre.Data.RecurringShowtimeRule", b =>
+            modelBuilder.Entity("Capitol_Theatre.Data.MovieShowDate", b =>
                 {
-                    b.Navigation("Days");
+                    b.Navigation("Showtimes");
                 });
 
             modelBuilder.Entity("Capitol_Theatre.Data.SiteSettings", b =>
