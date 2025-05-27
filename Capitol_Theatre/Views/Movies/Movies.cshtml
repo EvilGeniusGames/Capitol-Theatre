@@ -8,18 +8,97 @@
 
     var today = DateTime.Today;
     DateTime start, end;
+    DateTime? nextFriday = null;
 
     if (mode == "nextweek")
     {
         start = today.AddDays(7 - ((int)today.DayOfWeek + 2) % 7);
+        end = start.AddDays(6);
+    }
+    else if (mode == "comingsoon")
+    {
+        start = today.AddDays(14 - ((int)today.DayOfWeek + 2) % 7);
+        end = DateTime.MaxValue;
+        nextFriday = start;
+    }
+    else // nowshowing
+    {
+        start = today.AddDays(-((int)today.DayOfWeek + 2) % 7);
+        end = start.AddDays(6);
+    }
+}
+
+
+
+@* <h2 class="mb-1">@title</h2>
+
+@{
+    if (mode == "comingsoon")
+    {
+        <h5 class="text-muted mb-4">After @(nextFriday.Value.ToString("MMMM d"))</h5>
     }
     else
     {
-        start = today.AddDays(-((int)today.DayOfWeek + 2) % 7);
+        <h5 class="text-muted mb-4">Fri @start.ToString("MMMM d") to Thurs @end.ToString("MMMM d")</h5>
     }
+} *@
 
-    end = start.AddDays(6);
-    var nextFriday = start.AddDays(14);
+
+
+@functions {
+    private string GetGroupedShowtimeRanges(IEnumerable<(DayOfWeek Day, string Time)> input)
+    {
+        var dayOrder = new Dictionary<DayOfWeek, int>
+        {
+            { DayOfWeek.Friday, 0 },
+            { DayOfWeek.Saturday, 1 },
+            { DayOfWeek.Sunday, 2 },
+            { DayOfWeek.Monday, 3 },
+            { DayOfWeek.Tuesday, 4 },
+            { DayOfWeek.Wednesday, 5 },
+            { DayOfWeek.Thursday, 6 }
+        };
+
+        var dayGroups = input
+            .GroupBy(x => x.Day)
+            .Select(g => new
+            {
+                Day = g.Key,
+                Times = g.Select(x => DateTime.ParseExact(x.Time, "h:mm tt", null))
+                         .Distinct()
+                         .OrderBy(t => t)
+                         .Select(t => t.ToString("h:mm tt"))
+                         .ToList(),
+                Order = dayOrder[g.Key]
+            })
+            .OrderBy(g => g.Order)
+            .ToList();
+
+        var result = new List<string>();
+        int i = 0;
+        while (i < dayGroups.Count)
+        {
+            var start = i;
+            var times = dayGroups[i].Times;
+
+            while (i + 1 < dayGroups.Count &&
+                   dayGroups[i + 1].Order == dayGroups[i].Order + 1 &&
+                   dayGroups[i + 1].Times.SequenceEqual(times))
+            {
+                i++;
+            }
+
+            var end = i;
+            string dayLabel = start == end
+                ? dayGroups[start].Day.ToString().Substring(0, 3)
+                : $"{dayGroups[start].Day.ToString().Substring(0, 3)}–{dayGroups[end].Day.ToString().Substring(0, 3)}";
+
+            result.Add($"{dayLabel} {string.Join(", ", times)}");
+            i++;
+        }
+
+        return string.Join(", ", result);
+    }
 }
 
 <div class="container py-4">
@@ -27,34 +106,44 @@
 
     @if (mode == "nowshowing" || mode == "nextweek")
     {
-        <h5 class="text-muted mb-4">Fri @start.ToString("MMMM d") to Thurs @end.ToString("MMMM d")</h5>
+        <h5 class="text-muted mb-4">Fri @(start.ToString("MMMM d")) to Thurs @(end.ToString("MMMM d"))</h5>
     }
-    else if (mode == "comingsoon")
+    else if (mode == "comingsoon" && nextFriday.HasValue)
     {
-        <h5 class="text-muted mb-4">After @nextFriday.ToString("MMMM d")</h5>
+        <h5 class="text-muted mb-4">After @(nextFriday.Value.ToString("MMMM d"))</h5>
     }
 
 
     <div class="d-flex flex-wrap gap-4 justify-content-center justify-content-md-start">
         @foreach (var movie in Model)
         {
-            var allShowtimes = movie.MovieShowDates?
-            .SelectMany(d => d.Showtimes.Select(s => new { d.ShowDate, s.StartTime }))
-            .ToList() ?? new();
+            var startDateOnly = DateOnly.FromDateTime(start);
+            var endDateOnly = DateOnly.FromDateTime(end);
 
-            var matinees = allShowtimes
-            .Where(x => x.StartTime.Hour < 17)
-            .GroupBy(x => x.StartTime)
-            .Select(g => g.Key.ToString("h:mm tt"))
+            var filteredShowDates = movie.MovieShowDates?
+            .Where(d => d.ShowDate >= startDateOnly && d.ShowDate <= endDateOnly)
             .ToList();
 
-            var evenings = allShowtimes
-            .Where(x => x.StartTime.Hour >= 17)
-            .GroupBy(x => x.StartTime)
-            .Select(g => g.Key.ToString("h:mm tt"))
+            var eveningDays = filteredShowDates?
+            .SelectMany(d => d.Showtimes
+            .Where(s => s.StartTime.Hour >= 17)
+            .Select(s => ((Day: d.ShowDate.DayOfWeek, Time: s.StartTime.ToString("h:mm tt")))))
+            .Distinct()
             .ToList();
 
-            var lastShowDate = movie.MovieShowDates?.Max(d => d.ShowDate);
+            var matineeDays = filteredShowDates?
+            .SelectMany(d => d.Showtimes
+            .Where(s => s.StartTime.Hour < 17)
+            .Select(s => ((Day: d.ShowDate.DayOfWeek, Time: s.StartTime.ToString("h:mm tt")))))
+            .Distinct()
+            .ToList();
+
+            DateOnly? lastShowDate = (filteredShowDates != null && filteredShowDates.Any())
+            ? filteredShowDates.Max(d => d.ShowDate)
+            : null;
+
+
+
             <div class="card shadow-sm" style="width: 24rem; background-color: @siteSettings.CardBackgroundColor;">
                 <div class="poster-container" data-trailer="@movie.TrailerUrl" onclick="handlePosterClick(this)">
                     <img src="@movie.PosterPath" class="card-img-top img-fluid" alt="@movie.Title Poster">
@@ -73,21 +162,20 @@
                 <div class="card-body" style="background-color: @siteSettings.CardBackgroundColor;">
                     <h4 class="card-title fw-semibold">@movie.Title</h4>
 
-                    @if (evenings.Any())
+                    @if (eveningDays?.Any() == true)
                     {
-                        <p class="mb-1"><strong>Showtimes:</strong> Fri–Thu @evenings.First()</p>
+                        <p class="mb-1"><strong>Showtimes:</strong> @GetGroupedShowtimeRanges(eveningDays)</p>
                     }
 
-                    @if (matinees.Any())
+                    @if (matineeDays?.Any() == true)
                     {
-                        <p class="mb-1"><strong>Matinées:</strong> Sat–Sun @matinees.First()</p>
+                        <p class="mb-1"><strong>Matinées:</strong> @GetGroupedShowtimeRanges(matineeDays)</p>
                     }
 
                     @if ((mode == "nowshowing") && lastShowDate.HasValue)
                     {
                         <p class="mb-1"><strong>Last Showing:</strong> @lastShowDate.Value.ToString("dddd MMM d")</p>
                     }
-
 
                     @if (movie.runtime.HasValue)
                     {

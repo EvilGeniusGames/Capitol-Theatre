@@ -11,7 +11,7 @@
 <h2 class="my-4">@((isEdit ? "✏️ Edit Movie" : "➕ Add New Movie"))</h2>
 
 <div class="card bg-light p-4">
-    
+
     <form asp-action="Index" method="post">
         @Html.AntiForgeryToken()
 
@@ -125,11 +125,15 @@
                     const date = d.toISOString().split('T')[0];
                     if (!showDateTimeMap.has(date)) {
                         showDateTimeMap.set(date, []);
+                        const longDate = d.toLocaleDateString(undefined, {
+                            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+                        });
+
                         const listItem = document.createElement("li");
                         listItem.className = "list-group-item";
                         listItem.id = `date-${date}`;
                         listItem.innerHTML = `
-                            <strong>${date}</strong>
+                            <strong>${longDate}</strong>
                             <button type="button" class="btn btn-sm btn-danger float-end" onclick="removeDate('${date}')">Remove</button>
                             <ul class="list-group mt-2" id="times-${date}"></ul>`;
                         document.getElementById("dateList").appendChild(listItem);
@@ -139,7 +143,7 @@
             }
         });
 
-            function addTimeToDate() {
+        function addTimeToDate() {
             const selectedDates = document.querySelector("#multiDatePicker")._flatpickr.selectedDates;
             const time = document.getElementById("timePicker").value;
             if (!time) return;
@@ -153,13 +157,13 @@
 
                 times.push(time);
                 const timeList = document.getElementById(`times-${date}`);
-                const listItem = document.createElement("li");
-                listItem.className = "list-group-item";
-
                 const [hour, minute] = time.split(":");
                 const hour12 = ((+hour % 12) || 12);
                 const ampm = +hour >= 12 ? "PM" : "AM";
                 const formatted = `${hour12}:${minute} ${ampm}`;
+
+                const listItem = document.createElement("li");
+                listItem.className = "list-group-item";
 
                 listItem.innerHTML = `${formatted}
                     <button type="button" class="btn btn-sm btn-danger float-end"
@@ -169,7 +173,6 @@
 
             updateHiddenField();
         }
-
 
         function removeDate(date) {
             showDateTimeMap.delete(date);
@@ -191,7 +194,7 @@
             const entries = [];
             for (const [date, times] of showDateTimeMap.entries()) {
                 if (times.length === 0) {
-                    entries.push(`${date}`); // Add date without a time
+                    entries.push(`${date}`);
                 } else {
                     for (const time of times) {
                         entries.push(`${date}|${time}`);
@@ -227,15 +230,19 @@
             }
         }
 
-
         function addDateTimeFromServer(date, time) {
             if (!showDateTimeMap.has(date)) {
                 showDateTimeMap.set(date, []);
+                const parsedDate = new Date(date);
+                const longDate = parsedDate.toLocaleDateString(undefined, {
+                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+                });
+
                 const listItem = document.createElement("li");
                 listItem.className = "list-group-item";
                 listItem.id = `date-${date}`;
                 listItem.innerHTML = `
-                    <strong>${date}</strong>
+                    <strong>${longDate}</strong>
                     <button type="button" class="btn btn-sm btn-danger float-end" onclick="removeDate('${date}')">Remove</button>
                     <ul class="list-group mt-2" id="times-${date}"></ul>`;
                 document.getElementById("dateList").appendChild(listItem);
@@ -243,7 +250,7 @@
 
             if (!time) {
                 updateHiddenField();
-                return; // ⬅️ Skip appending an empty time
+                return;
             }
 
             const times = showDateTimeMap.get(date);
@@ -265,8 +272,5 @@
 
             updateHiddenField();
         }
-
-
     </script>
-
 }

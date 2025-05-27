@@ -82,7 +82,8 @@ namespace Capitol_Theatre.Data
                 new Rating { Id = 2, Code = "PG", Description = "Parental guidance is advised. Theme or content may not be suitable for all children." },
                 new Rating { Id = 3, Code = "14A", Description = "Suitable for viewing by persons 14 years of age or older. Persons under 14 must be accompanied by an adult. May contain violence, coarse language, and/or sexually suggestive scenes." },
                 new Rating { Id = 4, Code = "18A", Description = "Suitable for viewing by persons 18 years of age or older. Persons 14 - 17 must be accompanied by an adult. No Admittance to persons under 14. May contain explicit violence, frequent coarse language, sexual activity and/or horror." },
-                new Rating { Id = 5, Code = "R", Description = "Admittance restricted to persons 18 and older. Content not suitable for minors. Contains frequent sexual activity, brutal/graphic violence, intense horror and/or disturbing content." }
+                new Rating { Id = 5, Code = "R", Description = "Admittance restricted to persons 18 and older. Content not suitable for minors. Contains frequent sexual activity, brutal/graphic violence, intense horror and/or disturbing content." },
+                new Rating { Id = 6, Code = "NR", Description = "Not Rated. Content may not have been submitted for rating or is not suitable for classification." } // Added NR rating
             );
 
             modelBuilder.Entity<SocialMediaType>().HasData(
