@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace Capitol_Theatre.Controllers
 {
@@ -88,7 +89,8 @@ namespace Capitol_Theatre.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Index(string mode, Movie model, [FromForm] string ShowDateTimeEntries)
+        public async Task<IActionResult> Index(string mode, Movie model, [FromForm] string ShowtimesJson)
+
         {
             if (!ModelState.IsValid)
             {
@@ -103,7 +105,7 @@ namespace Capitol_Theatre.Controllers
                 return View("CreateEditMovie", model);
             }
 
-            var parsedShowDates = ParseShowDateTimeEntries(ShowDateTimeEntries);
+            var parsedShowDates = ParseShowtimesJson(ShowtimesJson);
 
             // Calculate current Friday–Thursday range
             var today = DateOnly.FromDateTime(DateTime.Today);
@@ -140,6 +142,15 @@ namespace Capitol_Theatre.Controllers
 
             if (mode.Equals("Create", StringComparison.OrdinalIgnoreCase))
             {
+                foreach (var date in parsedShowDates)
+                {
+                    date.Movie = model;
+                    foreach (var showtime in date.Showtimes)
+                    {
+                        showtime.MovieShowDate = date;
+                    }
+                }
+
                 model.MovieShowDates = parsedShowDates;
                 _context.Movies.Add(model);
             }
@@ -162,11 +173,46 @@ namespace Capitol_Theatre.Controllers
                 if (!string.IsNullOrEmpty(model.PosterPath)) movie.PosterPath = model.PosterPath;
 
                 _context.MovieShowDates.RemoveRange(movie.MovieShowDates);
+
+                foreach (var date in parsedShowDates)
+                {
+                    date.Movie = movie;
+                    foreach (var showtime in date.Showtimes)
+                    {
+                        showtime.MovieShowDate = date;
+                    }
+                }
+
                 movie.MovieShowDates = parsedShowDates;
             }
 
+
             await _context.SaveChangesAsync();
             return RedirectToAction("ManageMovies", "Admin");
+        }
+
+
+        private List<MovieShowDate> ParseShowtimesJson(string json)
+        {
+            if (string.IsNullOrWhiteSpace(json))
+                return new List<MovieShowDate>();
+
+            var entries = System.Text.Json.JsonSerializer.Deserialize<List<ShowtimeEntry>>(json)
+                          ?? new List<ShowtimeEntry>();
+
+            var grouped = entries
+                .Where(e => e != null && !string.IsNullOrWhiteSpace(e.Date) && !string.IsNullOrWhiteSpace(e.Time))
+                .GroupBy(e => DateOnly.Parse(e.Date!))
+                .Select(g => new MovieShowDate
+                {
+                    ShowDate = g.Key,
+                    Showtimes = g.Select(e => new Showtime
+                    {
+                        StartTime = TimeOnly.Parse(e.Time!)
+                    }).ToList()
+                });
+
+            return grouped.ToList();
         }
 
 
@@ -200,6 +246,17 @@ namespace Capitol_Theatre.Controllers
             return result.Values.ToList();
         }
 
+        private class ShowtimeEntry
+        {
+            [JsonPropertyName("date")]
+            public string? Date { get; set; }
+
+            [JsonPropertyName("time")]
+            public string? Time { get; set; }
+
+            [JsonPropertyName("id")]
+            public string? Id { get; set; }
+        }
 
 
     }

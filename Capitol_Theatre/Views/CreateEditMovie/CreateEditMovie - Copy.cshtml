@@ -1,0 +1,276 @@
+﻿@model Capitol_Theatre.Data.Movie
+
+@{
+    var mode = ViewBag.Mode as string ?? "Create";
+    bool isEdit = mode.Equals("Edit", StringComparison.OrdinalIgnoreCase);
+
+    ViewData["Title"] = isEdit ? "Edit Movie" : "Add New Movie";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h2 class="my-4">@((isEdit ? "✏️ Edit Movie" : "➕ Add New Movie"))</h2>
+
+<div class="card bg-light p-4">
+
+    <form asp-action="Index" method="post">
+        @Html.AntiForgeryToken()
+
+        <input type="hidden" name="mode" value="@mode" />
+        @if (isEdit)
+        {
+            <input type="hidden" asp-for="Id" />
+        }
+
+        <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+        <div class="mb-3">
+            <label asp-for="Title" class="form-label"></label>
+            <input asp-for="Title" class="form-control" />
+            <span asp-validation-for="Title" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Poster Image</label>
+
+            <div id="posterSelectedFilename" class="mb-2 text-muted small" style="display:@(string.IsNullOrEmpty(Model.PosterPath) ? "none" : "block")">
+                <strong>Selected:</strong> @System.IO.Path.GetFileName(Model.PosterPath)
+            </div>
+
+            <img id="PosterPathPreview" src="@Model.PosterPath"
+                 alt="Poster Preview"
+                 style="display:@(string.IsNullOrEmpty(Model.PosterPath) ? "none" : "block");
+                max-height:200px; margin-bottom:10px;"
+                 class="img-thumbnail" />
+
+            <input type="hidden" asp-for="PosterPath" id="PosterPath" />
+
+            <button type="button" class="btn btn-primary"
+                    onclick="openImageSelector('PosterPath', 'posters')">
+                Upload or Choose Poster
+            </button>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Description" class="form-label"></label>
+            <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+            <span asp-validation-for="Description" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="RatingId" class="form-label">Rating</label>
+            <select asp-for="RatingId" class="form-select" asp-items="ViewBag.Ratings"></select>
+            <span asp-validation-for="RatingId" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Warning" class="form-label"></label>
+            <input asp-for="Warning" class="form-control" />
+            <span asp-validation-for="Warning" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="WarningColor" class="form-label">Warning Color</label>
+            <input asp-for="WarningColor" class="form-control form-control-color" type="color" />
+            <span asp-validation-for="WarningColor" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="TrailerUrl" class="form-label"></label>
+            <input asp-for="TrailerUrl" class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="runtime" class="form-label">Runtime (minutes)</label>
+            <input asp-for="runtime" class="form-control" type="number" min="0" />
+            <span asp-validation-for="runtime" class="text-danger"></span>
+        </div>
+
+        <!-- NEW SHOWTIME INPUT -->
+        <div class="mb-3">
+            <label class="form-label">Add Showtimes</label>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Select Dates</label>
+                    <input type="text" id="multiDatePicker" class="form-control" placeholder="Select one or more dates" />
+                    <ul class="list-group mt-2" id="dateList"></ul>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Add Time to Selected Dates</label>
+                    <input type="time" class="form-control" id="timePicker" />
+                    <button type="button" class="btn btn-outline-success mt-2" onclick="addTimeToDate()">Add Time</button>
+                </div>
+            </div>
+
+            <input type="hidden" name="ShowDateTimeEntries" id="ShowDateTimeEntries" />
+        </div>
+
+        <button type="submit" class="btn btn-success">@((isEdit ? "Save Changes" : "Create Movie"))</button>
+        <a asp-action="ManageMovies" asp-controller="Admin" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="/js/uploadModalHelper.js"></script>
+
+    <script>
+        const showDateTimeMap = new Map();
+
+        flatpickr("#multiDatePicker", {
+            mode: "multiple",
+            dateFormat: "Y-m-d",
+            onChange: function(selectedDates) {
+                selectedDates.forEach(d => {
+                    const date = d.toISOString().split('T')[0];
+                    if (!showDateTimeMap.has(date)) {
+                        showDateTimeMap.set(date, []);
+                        const longDate = d.toLocaleDateString(undefined, {
+                            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+                        });
+
+                        const listItem = document.createElement("li");
+                        listItem.className = "list-group-item";
+                        listItem.id = `date-${date}`;
+                        listItem.innerHTML = `
+                            <strong>${longDate}</strong>
+                            <button type="button" class="btn btn-sm btn-danger float-end" onclick="removeDate('${date}')">Remove</button>
+                            <ul class="list-group mt-2" id="times-${date}"></ul>`;
+                        document.getElementById("dateList").appendChild(listItem);
+                    }
+                });
+                updateHiddenField();
+            }
+        });
+
+        function addTimeToDate() {
+            const selectedDates = document.querySelector("#multiDatePicker")._flatpickr.selectedDates;
+            const time = document.getElementById("timePicker").value;
+            if (!time) return;
+
+            selectedDates.forEach(d => {
+                const date = d.toISOString().split('T')[0];
+                if (!showDateTimeMap.has(date)) return;
+
+                const times = showDateTimeMap.get(date);
+                if (times.includes(time)) return;
+
+                times.push(time);
+                const timeList = document.getElementById(`times-${date}`);
+                const [hour, minute] = time.split(":");
+                const hour12 = ((+hour % 12) || 12);
+                const ampm = +hour >= 12 ? "PM" : "AM";
+                const formatted = `${hour12}:${minute} ${ampm}`;
+
+                const listItem = document.createElement("li");
+                listItem.className = "list-group-item";
+
+                listItem.innerHTML = `${formatted}
+                    <button type="button" class="btn btn-sm btn-danger float-end"
+                        onclick="removeTime('${date}', '${time}', this)">Remove</button>`;
+                timeList.appendChild(listItem);
+            });
+
+            updateHiddenField();
+        }
+
+        function removeDate(date) {
+            showDateTimeMap.delete(date);
+            document.getElementById(`date-${date}`)?.remove();
+            updateHiddenField();
+        }
+
+        function removeTime(date, time, button) {
+            const times = showDateTimeMap.get(date);
+            if (!times) return;
+
+            const index = times.indexOf(time);
+            if (index !== -1) times.splice(index, 1);
+            button.closest("li").remove();
+            updateHiddenField();
+        }
+
+        function updateHiddenField() {
+            const entries = [];
+            for (const [date, times] of showDateTimeMap.entries()) {
+                if (times.length === 0) {
+                    entries.push(`${date}`);
+                } else {
+                    for (const time of times) {
+                        entries.push(`${date}|${time}`);
+                    }
+                }
+            }
+            document.getElementById("ShowDateTimeEntries").value = entries.join(',');
+        }
+
+        @* PRELOAD EXISTING SHOWTIMES IN EDIT MODE *@
+        @if (isEdit && Model.MovieShowDates != null)
+        {
+            foreach (var dateGroup in Model.MovieShowDates.OrderBy(d => d.ShowDate))
+            {
+                var showDate = dateGroup.ShowDate.ToString("yyyy-MM-dd");
+
+                if (dateGroup.Showtimes == null || !dateGroup.Showtimes.Any())
+                {
+                    <text>
+                                    addDateTimeFromServer("@showDate", "");
+                    </text>
+                }
+                else
+                {
+                    foreach (var time in dateGroup.Showtimes.OrderBy(t => t.StartTime))
+                    {
+                        var startTime = time.StartTime.ToString("HH:mm");
+                        <text>
+                                            addDateTimeFromServer("@showDate", "@startTime");
+                        </text>
+                    }
+                }
+            }
+        }
+
+        function addDateTimeFromServer(date, time) {
+            if (!showDateTimeMap.has(date)) {
+                showDateTimeMap.set(date, []);
+                const parsedDate = new Date(date);
+                const longDate = parsedDate.toLocaleDateString(undefined, {
+                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+                });
+
+                const listItem = document.createElement("li");
+                listItem.className = "list-group-item";
+                listItem.id = `date-${date}`;
+                listItem.innerHTML = `
+                    <strong>${longDate}</strong>
+                    <button type="button" class="btn btn-sm btn-danger float-end" onclick="removeDate('${date}')">Remove</button>
+                    <ul class="list-group mt-2" id="times-${date}"></ul>`;
+                document.getElementById("dateList").appendChild(listItem);
+            }
+
+            if (!time) {
+                updateHiddenField();
+                return;
+            }
+
+            const times = showDateTimeMap.get(date);
+            if (!times.includes(time)) {
+                times.push(time);
+                const timeList = document.getElementById(`times-${date}`);
+                const [hour, minute] = time.split(':');
+                const hour12 = ((+hour % 12) || 12);
+                const ampm = +hour >= 12 ? "PM" : "AM";
+                const formattedTime = `${hour12}:${minute} ${ampm}`;
+
+                const listItem = document.createElement("li");
+                listItem.className = "list-group-item";
+                listItem.innerHTML = `${formattedTime}
+                    <button type="button" class="btn btn-sm btn-danger float-end"
+                        onclick="removeTime('${date}', '${time}', this)">Remove</button>`;
+                timeList.appendChild(listItem);
+            }
+
+            updateHiddenField();
+        }
+    </script>
+}
