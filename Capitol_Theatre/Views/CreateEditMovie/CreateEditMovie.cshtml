@@ -117,40 +117,44 @@
         document.addEventListener('DOMContentLoaded', function () {
             const calendarEl = document.getElementById('calendar');
             calendar = new FullCalendar.Calendar(calendarEl, {
-                displayEventTime: false,
-                initialView: 'dayGridMonth',
-                selectable: true,
-                selectMirror: true,
-                select: function (info) {
-                    selectedDateRange = [];
-                    let current = new Date(info.start);
-                    while (current < info.end) {
-                        selectedDateRange.push(new Date(current));
-                        current.setDate(current.getDate() + 1);
-                    }
-                },
-                events: []
-            });
+            displayEventTime: false,
+            initialView: 'dayGridMonth',
+            selectable: true,
+            selectMirror: true,
+            unselectAuto: false, // ✅ Place here instead
+            select: function (info) {
+                selectedDateRange = [];
+                let current = new Date(info.start);
+                while (current < info.end) {
+                    selectedDateRange.push(new Date(current));
+                    current.setDate(current.getDate() + 1);
+                }
+            },
+            events: []
+        });
+
+
             calendar.render();
 
-            @if (isEdit && Model.MovieShowDates != null)
+        @if (isEdit && Model.MovieShowDates != null)
+        {
+            foreach (var dateGroup in Model.MovieShowDates.OrderBy(d => d.ShowDate))
             {
-                foreach (var dateGroup in Model.MovieShowDates.OrderBy(d => d.ShowDate))
+                var dateStr = dateGroup.ShowDate.ToString("yyyy-MM-dd");
+                if (dateGroup.Showtimes != null)
                 {
-                    var dateStr = dateGroup.ShowDate.ToString("yyyy-MM-dd");
-                    if (dateGroup.Showtimes != null)
+                    foreach (var time in dateGroup.Showtimes.OrderBy(t => t.StartTime))
                     {
-                        foreach (var time in dateGroup.Showtimes.OrderBy(t => t.StartTime))
-                        {
-                            var timeStr = time.StartTime.ToString("HH:mm");
-                            <text>
-                                                    preloadShowtime("@dateStr", "@timeStr");
-                            </text>
-                        }
+                        var timeStr = time.StartTime.ToString("HH:mm");
+                        <text>
+                                                preloadShowtime("@dateStr", "@timeStr");
+                        </text>
                     }
                 }
             }
+        }
         });
+
 
 
 
