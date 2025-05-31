@@ -75,3 +75,6 @@ docker-compose.override.yml
 
 # Ignore temporary uploaded files
 /App_Data/TempUploads/
+
+#Ignore LuanchSettings.json
+Capitol_Theatre/Properties/launchSettings.json

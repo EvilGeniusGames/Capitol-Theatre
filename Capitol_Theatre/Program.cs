@@ -35,7 +35,9 @@ public class Program
             ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
         builder.Services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseSqlite(connectionString));
+            options.UseSqlite(connectionString)
+                   .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.MultipleCollectionIncludeWarning))
+        );
 
         builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
