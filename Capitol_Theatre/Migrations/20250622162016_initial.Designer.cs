@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Capitol_Theatre.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250526202514_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20250622162016_initial")]
+    partial class initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -28,6 +28,9 @@ namespace Capitol_Theatre.Migrations
 
                     b.Property<string>("Description")
                         .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ManualLastShowingText")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("PosterPath")
@@ -213,6 +216,12 @@ namespace Capitol_Theatre.Migrations
                             Id = 5,
                             Code = "R",
                             Description = "Admittance restricted to persons 18 and older. Content not suitable for minors. Contains frequent sexual activity, brutal/graphic violence, intense horror and/or disturbing content."
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Code = "NR",
+                            Description = "Not Rated. Content may not have been submitted for rating or is not suitable for classification."
                         });
                 });
 

@@ -198,6 +198,7 @@ namespace Capitol_Theatre.Controllers
                 movie.Warning = model.Warning;
                 movie.WarningColor = model.WarningColor;
                 movie.TrailerUrl = model.TrailerUrl;
+                movie.ManualLastShowingText = model.ManualLastShowingText;
                 if (!string.IsNullOrEmpty(model.PosterPath)) movie.PosterPath = model.PosterPath;
 
                 _context.MovieShowDates.RemoveRange(movie.MovieShowDates);

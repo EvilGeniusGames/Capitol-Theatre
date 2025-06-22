@@ -158,10 +158,15 @@
                         <p class="mb-1"><strong>Matinées:</strong> @GetGroupedShowtimeRanges(matineeDays)</p>
                     }
 
-                    @if ((mode == "nowshowing") && lastShowDate.HasValue)
+                    @if (!string.IsNullOrWhiteSpace(movie.ManualLastShowingText))
                     {
-                        <p class="mb-1"><strong>Last Showing:</strong> @lastShowDate.Value.ToString("dddd MMM d")</p>
+                        var parsed = DateTime.TryParse(movie.ManualLastShowingText, out var manualDate);
+                        if (parsed)
+                        {
+                            <p class="mb-1"><strong>Last Showing:</strong> @manualDate.ToString("dddd MMM d")</p>
+                        }
                     }
+
 
                     @if (movie.runtime.HasValue)
                     {

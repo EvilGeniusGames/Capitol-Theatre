@@ -27,6 +27,9 @@ namespace Capitol_Theatre.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("ManualLastShowingText")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("PosterPath")
                         .HasColumnType("TEXT");
 

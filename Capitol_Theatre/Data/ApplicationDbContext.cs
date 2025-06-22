@@ -130,6 +130,7 @@ namespace Capitol_Theatre.Data
         public string? TrailerUrl { get; set; }
         public int? runtime { get; set; }
         public int? RunLength { get; set; }
+        public string? ManualLastShowingText { get; set; }
         public ICollection<MovieShowDate> MovieShowDates { get; set; } = new List<MovieShowDate>();
 
         private static string JoinTimes(List<string> times)

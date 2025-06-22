@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Capitol_Theatre.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class initial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -251,7 +251,8 @@ namespace Capitol_Theatre.Migrations
                     WarningColor = table.Column<string>(type: "TEXT", nullable: true),
                     TrailerUrl = table.Column<string>(type: "TEXT", nullable: true),
                     runtime = table.Column<int>(type: "INTEGER", nullable: true),
-                    RunLength = table.Column<int>(type: "INTEGER", nullable: true)
+                    RunLength = table.Column<int>(type: "INTEGER", nullable: true),
+                    ManualLastShowingText = table.Column<string>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -352,7 +353,8 @@ namespace Capitol_Theatre.Migrations
                     { 2, "PG", "Parental guidance is advised. Theme or content may not be suitable for all children." },
                     { 3, "14A", "Suitable for viewing by persons 14 years of age or older. Persons under 14 must be accompanied by an adult. May contain violence, coarse language, and/or sexually suggestive scenes." },
                     { 4, "18A", "Suitable for viewing by persons 18 years of age or older. Persons 14 - 17 must be accompanied by an adult. No Admittance to persons under 14. May contain explicit violence, frequent coarse language, sexual activity and/or horror." },
-                    { 5, "R", "Admittance restricted to persons 18 and older. Content not suitable for minors. Contains frequent sexual activity, brutal/graphic violence, intense horror and/or disturbing content." }
+                    { 5, "R", "Admittance restricted to persons 18 and older. Content not suitable for minors. Contains frequent sexual activity, brutal/graphic violence, intense horror and/or disturbing content." },
+                    { 6, "NR", "Not Rated. Content may not have been submitted for rating or is not suitable for classification." }
                 });
 
             migrationBuilder.InsertData(

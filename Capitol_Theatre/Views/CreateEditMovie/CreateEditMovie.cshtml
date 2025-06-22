@@ -77,6 +77,14 @@
             <input asp-for="runtime" class="form-control" type="number" min="0" />
             <span asp-validation-for="runtime" class="text-danger"></span>
         </div>
+        <div class="mb-3">
+            <label asp-for="ManualLastShowingText" class="form-label">Manual Last Showing (optional)</label>
+            <div class="input-group">
+                <input asp-for="ManualLastShowingText" class="form-control" type="date" />
+                <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('ManualLastShowingText').value = '';">Clear</button>
+            </div>
+            <span asp-validation-for="ManualLastShowingText" class="text-danger"></span>
+        </div>
 
         <!-- FullCalendar Integration -->
         <div class="mb-3">
