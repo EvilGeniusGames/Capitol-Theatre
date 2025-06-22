@@ -28,35 +28,13 @@
     }
 }
 
-
-
-@* <h2 class="mb-1">@title</h2>
-
-@{
-    if (mode == "comingsoon")
-    {
-        <h5 class="text-muted mb-4">After @(nextFriday.Value.ToString("MMMM d"))</h5>
-    }
-    else
-    {
-        <h5 class="text-muted mb-4">Fri @start.ToString("MMMM d") to Thurs @end.ToString("MMMM d")</h5>
-    }
-} *@
-
-
-
 @functions {
     private string GetGroupedShowtimeRanges(IEnumerable<(DayOfWeek Day, string Time)> input)
     {
         var dayOrder = new Dictionary<DayOfWeek, int>
         {
-            { DayOfWeek.Friday, 0 },
-            { DayOfWeek.Saturday, 1 },
-            { DayOfWeek.Sunday, 2 },
-            { DayOfWeek.Monday, 3 },
-            { DayOfWeek.Tuesday, 4 },
-            { DayOfWeek.Wednesday, 5 },
-            { DayOfWeek.Thursday, 6 }
+            { DayOfWeek.Friday, 0 }, { DayOfWeek.Saturday, 1 }, { DayOfWeek.Sunday, 2 },
+            { DayOfWeek.Monday, 3 }, { DayOfWeek.Tuesday, 4 }, { DayOfWeek.Wednesday, 5 }, { DayOfWeek.Thursday, 6 }
         };
 
         var dayGroups = input
@@ -113,16 +91,26 @@
         <h5 class="text-muted mb-4">Listings are subject to change</h5>
     }
 
-
     <div class="d-flex flex-wrap gap-4 justify-content-center justify-content-md-start">
-        @foreach (var movie in Model)
+        @foreach (var movie in Model.Where(m =>
+                (mode == "comingsoon" && m.MovieShowDates != null && m.MovieShowDates.Any(d => d.ShowDate > DateOnly.FromDateTime(today))) ||
+                (mode != "comingsoon")))
         {
             var startDateOnly = DateOnly.FromDateTime(start);
             var endDateOnly = DateOnly.FromDateTime(end);
 
             var filteredShowDates = movie.MovieShowDates?
             .Where(d => d.ShowDate >= startDateOnly && d.ShowDate <= endDateOnly)
+            .Where(d => d.Showtimes != null && d.Showtimes.Any())
             .ToList();
+
+            var hasFutureDateOnly = movie.MovieShowDates?
+            .Any(d => d.ShowDate > DateOnly.FromDateTime(today) && (d.Showtimes == null || !d.Showtimes.Any())) == true;
+
+            if (mode == "comingsoon" && !filteredShowDates.Any() && !hasFutureDateOnly)
+            {
+                continue;
+            }
 
             var eveningDays = filteredShowDates?
             .SelectMany(d => d.Showtimes
@@ -141,8 +129,6 @@
             DateOnly? lastShowDate = (filteredShowDates != null && filteredShowDates.Any())
             ? filteredShowDates.Max(d => d.ShowDate)
             : null;
-
-
 
             <div class="card shadow-sm" style="width: 24rem; background-color: @siteSettings.CardBackgroundColor;">
                 <div class="poster-container" data-trailer="@movie.TrailerUrl" onclick="handlePosterClick(this)">

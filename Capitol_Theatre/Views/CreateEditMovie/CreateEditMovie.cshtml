@@ -85,8 +85,13 @@
                 <div class="col-md-8">
                     <div id="calendar"></div>
                 </div>
+               
                 <div class="col-md-4">
-                    <label class="form-label">Add Time</label>
+                    <div>
+                        <label class="form-label">Add Dates Without Times</label>
+                        <button type="button" class="btn btn-secondary" id="addNoTimesBtn">Add Date(s) Without Times</button>
+                    </div>
+                    <label class="form-label mt-3">Add Time</label>
                     <input type="time" id="timePicker" class="form-control mb-2" />
                     <button type="button" class="btn btn-outline-success mb-3" onclick="addTimeToSelectedDate()">Add Time</button>
 
@@ -94,12 +99,14 @@
                         <strong>Selected Dates & Times</strong>
                         <ul id="dateTimeList" class="list-group"></ul>
                     </div>
-                </div>
+                </div> 
+
+ 
             </div>
             @*<input type="hidden" name="ShowDateTimeEntries" id="ShowDateTimeEntries" />*@
             <input type="hidden" name="ShowtimesJson" id="ShowtimesJson" />
         </div>
-
+        <input type="hidden" name="NoTimeDaysJson" id="NoTimeDaysJson" />
         <button type="submit" class="btn btn-success">@((isEdit ? "Save Changes" : "Create Movie"))</button>
         <a asp-action="ManageMovies" asp-controller="Admin" class="btn btn-secondary">Cancel</a>
     </form>
@@ -112,6 +119,7 @@
     <script>
         let calendar;
         const showtimes = new Map();
+        const noTimeDates = new Set();
         let selectedDateRange = [];
 
         document.addEventListener('DOMContentLoaded', function () {
@@ -135,43 +143,85 @@
 
             calendar.render();
 
-        @if (isEdit && Model.MovieShowDates != null)
-        {
-            foreach (var dateGroup in Model.MovieShowDates.OrderBy(d => d.ShowDate))
+            @if (isEdit && Model.MovieShowDates != null)
             {
-                var dateStr = dateGroup.ShowDate.ToString("yyyy-MM-dd");
-                if (dateGroup.Showtimes != null)
-                {
-                    foreach (var time in dateGroup.Showtimes.OrderBy(t => t.StartTime))
+                    foreach (var dateGroup in Model.MovieShowDates.OrderBy(d => d.ShowDate))
                     {
-                        var timeStr = time.StartTime.ToString("HH:mm");
-                        <text>preloadShowtime("@dateStr", "@timeStr");</text>
+                            var dateStr = dateGroup.ShowDate.ToString("yyyy-MM-dd");
+
+                            if (dateGroup.Showtimes != null && dateGroup.Showtimes.Any())
+                            {
+                                    foreach (var time in dateGroup.Showtimes.OrderBy(t => t.StartTime))
+                                    {
+                                            var timeStr = time.StartTime.ToString("HH:mm");
+                                            <text>preloadShowtime("@dateStr", "@timeStr");</text>
+                                    }
+                            }
+                            else
+                            {
+                                    <text>
+                                        noTimeDates.add("@dateStr");
+                                        calendar.addEvent({
+                                            id: "no-time-@dateStr",
+                                            title: "No Showtimes",
+                                            start: "@dateStr",
+                                            allDay: true,
+                                            backgroundColor: "#f8d7da",
+                                            borderColor: "#f5c2c7"
+                                        });
+                                    </text>
+                            }
                     }
-                }
             }
-        }
+
+            updateNoTimeHiddenField();
+            updateList();
         });
 
-        function preloadShowtime(date, time) {
-            if (!showtimes.has(date)) showtimes.set(date, []);
-            const times = showtimes.get(date);
-            if (!times.some(t => t.time === time)) {
-                const guid = generateGUID();
-                times.push({ time, id: guid });
+        document.getElementById('addNoTimesBtn')?.addEventListener('click', () => {
+            if (!selectedDateRange.length) return;
 
-                const [hour, minute] = time.split(":"), hour12 = ((+hour % 12) || 12), ampm = +hour >= 12 ? "PM" : "AM";
-                const formattedTime = `${hour12}:${minute} ${ampm}`;
+            selectedDateRange.forEach(date => {
+                const key = date.toISOString().split('T')[0];
+
+                if (showtimes.has(key)) {
+                    if (!confirm(`"${key}" already has showtimes. This will remove them and replace with 'No Showtimes'. Continue?`)) {
+                        return;
+                    }
+
+                    showtimes.get(key).forEach(entry => {
+                        const event = calendar.getEventById(entry.id);
+                        if (event) event.remove();
+                    });
+                    showtimes.delete(key);
+                }
+
+                if (noTimeDates.has(key)) return;
+
+                noTimeDates.add(key);
+
+                const item = document.createElement("li");
+                item.className = "list-group-item d-flex justify-content-between align-items-center ps-4 small";
+                item.id = "noTime_" + key;
+                item.innerHTML = `
+                    <span>No Showtimes</span>
+                    <i class="fa-solid fa-circle-xmark text-danger ms-2" style="cursor:pointer;" onclick="removeNoTimeDate('${key}')"></i>
+                `;
+                document.getElementById("dateTimeList").appendChild(item);
 
                 calendar.addEvent({
-                    id: guid,
-                    title: formattedTime,
-                    start: `${date}T${time}`,
-                    allDay: false
+                    id: "no-time-" + key,
+                    title: "No Showtimes",
+                    start: key,
+                    allDay: true,
+                    backgroundColor: "#f8d7da",
+                    borderColor: "#f5c2c7"
                 });
-            }
+            });
+
+            updateNoTimeHiddenField();
             updateList();
-            updateHiddenField();
-        }
+        });
 
         function addTimeToSelectedDate() {
             if (!selectedDateRange.length) return;
@@ -184,6 +234,16 @@
 
             selectedDateRange.forEach(selectedDate => {
                 const dateKey = selectedDate.toISOString().split('T')[0];
+
+                if (noTimeDates.has(dateKey)) {
+                    noTimeDates.delete(dateKey);
+                    document.getElementById("noTime_" + dateKey)?.remove();
+
+                    const event = calendar.getEventById("no-time-" + dateKey);
+                    if (event) event.remove();
+
+                    updateNoTimeHiddenField();
+                }
 
                 if (!showtimes.has(dateKey)) showtimes.set(dateKey, []);
                 const times = showtimes.get(dateKey);
@@ -204,31 +264,26 @@
             updateHiddenField();
         }
 
-        function updateList() {
-            const list = document.getElementById("dateTimeList");
-            list.innerHTML = "";
+        function preloadShowtime(date, time) {
+            if (!showtimes.has(date)) showtimes.set(date, []);
+            const times = showtimes.get(date);
+            if (times.some(t => t.time === time)) return;
 
-            for (const [date, times] of showtimes.entries()) {
-                const dateHeader = document.createElement("li");
-                dateHeader.className = "list-group-item fw-bold small bg-light";
-                dateHeader.textContent = date;
-                list.appendChild(dateHeader);
+            const guid = generateGUID();
+            times.push({ time, id: guid });
 
-                times.forEach(entry => {
-                    const timeItem = document.createElement("li");
-                    timeItem.className = "list-group-item d-flex justify-content-between align-items-center ps-4";
+            const [hour, minute] = time.split(":"), hour12 = ((+hour % 12) || 12), ampm = +hour >= 12 ? "PM" : "AM";
+            const formattedTime = `${hour12}:${minute} ${ampm}`;
 
-                    const [hour, minute] = entry.time.split(":"), hour12 = ((+hour % 12) || 12), ampm = +hour >= 12 ? "PM" : "AM";
-                    const formattedTime = `${hour12}:${minute} ${ampm}`;
+            calendar.addEvent({
+                id: guid,
+                title: formattedTime,
+                start: `${date}T${time}`,
+                allDay: false
+            });
 
-                    timeItem.innerHTML = `
-                        <span class="small">${formattedTime}</span>
-                        <i class="fa-solid fa-circle-xmark text-danger ms-2" style="cursor:pointer;" onclick="removeDateTime('${date}', '${entry.time}')"></i>
-                    `;
-
-                    list.appendChild(timeItem);
-                });
-            }
+            updateList();
+            updateHiddenField();
         }
 
         function removeDateTime(date, time) {
@@ -239,7 +294,6 @@
             if (index === -1) return;
 
             const entry = times[index];
-
             const event = calendar.getEventById(entry.id);
             if (event) event.remove();
 
@@ -250,28 +304,78 @@
             updateHiddenField();
         }
 
+        function removeNoTimeDate(key) {
+            noTimeDates.delete(key);
+            document.getElementById("noTime_" + key)?.remove();
+
+            const event = calendar.getEventById("no-time-" + key);
+            if (event) event.remove();
+
+            updateNoTimeHiddenField();
+            updateList();
+        }
+
         function generateGUID() {
-            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
                 const r = Math.random() * 16 | 0,
-                      v = c === 'x' ? r : (r & 0x3 | 0x8);
+                    v = c === 'x' ? r : (r & 0x3 | 0x8);
                 return v.toString(16);
             });
         }
 
         function updateHiddenField() {
             const entries = [];
-
             for (const [date, times] of showtimes.entries()) {
                 times.forEach(entry => {
-                    entries.push({
-                        date: date,
-                        time: entry.time,
-                        id: entry.id
-                    });
+                    entries.push({ date: date, time: entry.time, id: entry.id });
                 });
             }
-
             document.getElementById("ShowtimesJson").value = JSON.stringify(entries);
+        }
+
+        function updateNoTimeHiddenField() {
+            document.getElementById("NoTimeDaysJson").value = JSON.stringify([...noTimeDates]);
+        }
+
+        function updateList() {
+            const list = document.getElementById("dateTimeList");
+            list.innerHTML = "";
+
+            const allDates = new Set([...showtimes.keys(), ...noTimeDates]);
+            const sortedDates = Array.from(allDates).sort();
+
+            sortedDates.forEach(date => {
+                const dateHeader = document.createElement("li");
+                dateHeader.className = "list-group-item fw-bold small bg-light";
+                dateHeader.textContent = date;
+                list.appendChild(dateHeader);
+
+                if (showtimes.has(date)) {
+                    showtimes.get(date).forEach(entry => {
+                        const [hour, minute] = entry.time.split(":"), hour12 = ((+hour % 12) || 12), ampm = +hour >= 12 ? "PM" : "AM";
+                        const formattedTime = `${hour12}:${minute} ${ampm}`;
+
+                        const timeItem = document.createElement("li");
+                        timeItem.className = "list-group-item d-flex justify-content-between align-items-center ps-4";
+                        timeItem.innerHTML = `
+                            <span class="small">${formattedTime}</span>
+                            <i class="fa-solid fa-circle-xmark text-danger ms-2" style="cursor:pointer;" onclick="removeDateTime('${date}', '${entry.time}')"></i>
+                        `;
+                        list.appendChild(timeItem);
+                    });
+                }
+
+                if (noTimeDates.has(date)) {
+                    const noTimeItem = document.createElement("li");
+                    noTimeItem.className = "list-group-item d-flex justify-content-between align-items-center ps-4 small";
+                    noTimeItem.innerHTML = `
+                        <span>No Showtimes</span>
+                        <i class="fa-solid fa-circle-xmark text-danger ms-2" style="cursor:pointer;" onclick="removeNoTimeDate('${date}')"></i>
+                    `;
+                    list.appendChild(noTimeItem);
+                }
+            });
         }
     </script>
 }
+

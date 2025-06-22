@@ -89,8 +89,7 @@ namespace Capitol_Theatre.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Index(string mode, Movie model, [FromForm] string ShowtimesJson)
-
+        public async Task<IActionResult> Index(string mode, Movie model, [FromForm] string ShowtimesJson, [FromForm] string NoTimeDaysJson)
         {
             if (!ModelState.IsValid)
             {
@@ -106,6 +105,34 @@ namespace Capitol_Theatre.Controllers
             }
 
             var parsedShowDates = ParseShowtimesJson(ShowtimesJson);
+
+            var noTimeDates = new List<MovieShowDate>();
+            if (!string.IsNullOrWhiteSpace(NoTimeDaysJson))
+            {
+                try
+                {
+                    var dates = System.Text.Json.JsonSerializer.Deserialize<List<string>>(NoTimeDaysJson);
+                    if (dates != null)
+                    {
+                        noTimeDates = dates
+                            .Select(d => DateOnly.Parse(d))
+                            .Except(parsedShowDates.Select(s => s.ShowDate))
+                            .Select(d => new MovieShowDate
+                            {
+                                ShowDate = d,
+                                Showtimes = new List<Showtime>() // explicitly empty
+                            })
+                            .ToList();
+                    }
+                }
+                catch
+                {
+                    ModelState.AddModelError("", "Failed to parse NoTimeDaysJson.");
+                }
+            }
+
+            parsedShowDates.AddRange(noTimeDates);
+
 
             // Calculate current Friday–Thursday range
             var today = DateOnly.FromDateTime(DateTime.Today);
@@ -125,6 +152,7 @@ namespace Capitol_Theatre.Controllers
             {
                 ModelState.AddModelError("", "Movies scheduled for this week must include at least one showtime.");
 
+                parsedShowDates.AddRange(noTimeDates);
                 model.MovieShowDates = parsedShowDates; // ✅ Restore parsed dates and times
 
                 ViewBag.Mode = mode;
