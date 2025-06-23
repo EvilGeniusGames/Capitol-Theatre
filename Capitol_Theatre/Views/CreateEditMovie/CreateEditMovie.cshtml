@@ -112,11 +112,17 @@
  
             </div>
             @*<input type="hidden" name="ShowDateTimeEntries" id="ShowDateTimeEntries" />*@
-            <input type="hidden" name="ShowtimesJson" id="ShowtimesJson" />
+            <input type="hidden" name="ShowtimesJson" id="ShowtimesJson" value="[]" />
+
         </div>
         <input type="hidden" name="NoTimeDaysJson" id="NoTimeDaysJson" />
         <button type="submit" class="btn btn-success">@((isEdit ? "Save Changes" : "Create Movie"))</button>
         <a asp-action="ManageMovies" asp-controller="Admin" class="btn btn-secondary">Cancel</a>
+        <script>
+            document.querySelector("form").addEventListener("submit", () => {
+                updateHiddenField(); // Ensure ShowtimesJson is always populated
+            });
+        </script>
     </form>
 </div>
 
@@ -338,8 +344,11 @@
                     entries.push({ date: date, time: entry.time, id: entry.id });
                 });
             }
-            document.getElementById("ShowtimesJson").value = JSON.stringify(entries);
+
+            const json = entries.length > 0 ? JSON.stringify(entries) : "[]";
+            document.getElementById("ShowtimesJson").value = json;
         }
+
 
         function updateNoTimeHiddenField() {
             document.getElementById("NoTimeDaysJson").value = JSON.stringify([...noTimeDates]);
