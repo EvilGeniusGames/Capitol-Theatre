@@ -93,7 +93,9 @@
 
     <div class="d-flex flex-wrap gap-4 justify-content-center justify-content-md-start">
         @foreach (var movie in Model.Where(m =>
-                (mode == "comingsoon" && m.MovieShowDates != null && m.MovieShowDates.Any(d => d.ShowDate > DateOnly.FromDateTime(today))) ||
+                (mode == "comingsoon"
+                && m.MovieShowDates != null
+                && m.MovieShowDates.Any(d => d.ShowDate >= DateOnly.FromDateTime(start))) ||
                 (mode != "comingsoon")))
         {
             var startDateOnly = DateOnly.FromDateTime(start);
@@ -105,7 +107,7 @@
             .ToList();
 
             var hasFutureDateOnly = movie.MovieShowDates?
-            .Any(d => d.ShowDate > DateOnly.FromDateTime(today) && (d.Showtimes == null || !d.Showtimes.Any())) == true;
+            .Any(d => d.ShowDate >= DateOnly.FromDateTime(start) && (d.Showtimes == null || !d.Showtimes.Any())) == true;
 
             if (mode == "comingsoon" && !filteredShowDates.Any() && !hasFutureDateOnly)
             {
@@ -150,7 +152,7 @@
 
                     @if (eveningDays?.Any() == true)
                     {
-                        <p class="mb-1"><strong>Showtimes:</strong> @GetGroupedShowtimeRanges(eveningDays)</p>
+                        <p class="mb-1"><strong>Evenings:</strong> @GetGroupedShowtimeRanges(eveningDays)</p>
                     }
 
                     @if (matineeDays?.Any() == true)

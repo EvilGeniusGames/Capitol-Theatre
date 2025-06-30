@@ -55,7 +55,7 @@ namespace Capitol_Theatre.Controllers
             if (mode.Equals("comingsoon", StringComparison.OrdinalIgnoreCase))
             {
                 query = query.Where(m =>
-                    m.MovieShowDates.Any(d => d.ShowDate > startDate));
+                    m.MovieShowDates.Any(d => d.ShowDate >= startDate));
             }
             else
             {
