@@ -26,6 +26,6 @@ jobs:
 
       - name: Build and Push Docker image
         run: |
-          docker build -t $IMAGE_NAME:latest -t $IMAGE_NAME:${{ steps.extract_tag.outputs.tag }} .
+          docker build -t $IMAGE_NAME:latest -t $IMAGE_NAME:${{ steps.extract_tag.outputs.tag }} -f Capitol_Theatre/Dockerfile .
           docker push $IMAGE_NAME:latest
           docker push $IMAGE_NAME:${{ steps.extract_tag.outputs.tag }}
